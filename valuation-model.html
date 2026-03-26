@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Independent Valuation Model — ASC 820</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #13161e;
+    --surface2: #1a1e28;
+    --surface3: #222636;
+    --border: #2a2f3f;
+    --accent: #4f8ef7;
+    --accent2: #7c5cfc;
+    --green: #22c55e;
+    --yellow: #eab308;
+    --red: #ef4444;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .logo {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-weight: 600; font-size: 13px; color: #fff;
+  }
+  .header-title { font-size: 15px; font-weight: 600; letter-spacing: -0.3px; }
+  .header-sub { font-size: 11px; color: var(--text3); font-family: var(--mono); letter-spacing: 0.5px; }
+  .badge {
+    background: var(--surface3); border: 1px solid var(--border);
+    border-radius: 4px; padding: 3px 8px;
+    font-family: var(--mono); font-size: 10px; color: var(--text2);
+    letter-spacing: 0.5px;
+  }
+
+  /* LAYOUT */
+  .layout { display: grid; grid-template-columns: 300px 1fr; min-height: calc(100vh - 57px); }
+
+  /* SIDEBAR */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px 16px;
+    overflow-y: auto;
+  }
+  .sidebar-section { margin-bottom: 24px; }
+  .sidebar-label {
+    font-family: var(--mono); font-size: 10px; font-weight: 500;
+    color: var(--text3); letter-spacing: 1px; text-transform: uppercase;
+    margin-bottom: 10px; padding-left: 4px;
+  }
+
+  /* INSTRUMENT TABS */
+  .instrument-list { display: flex; flex-direction: column; gap: 4px; }
+  .instrument-btn {
+    background: none; border: 1px solid transparent;
+    border-radius: 6px; padding: 10px 12px;
+    text-align: left; cursor: pointer; color: var(--text2);
+    font-family: var(--sans); font-size: 13px;
+    display: flex; align-items: center; gap: 10px;
+    transition: all 0.15s;
+  }
+  .instrument-btn:hover { background: var(--surface2); color: var(--text); }
+  .instrument-btn.active {
+    background: var(--surface3); border-color: var(--accent);
+    color: var(--text); font-weight: 500;
+  }
+  .instrument-btn .icon { font-size: 16px; width: 20px; text-align: center; }
+  .instrument-btn .method-tag {
+    margin-left: auto; font-family: var(--mono); font-size: 9px;
+    color: var(--accent); background: rgba(79,142,247,0.1);
+    border-radius: 3px; padding: 1px 5px;
+  }
+
+  /* MAIN */
+  .main { background: var(--bg); overflow-y: auto; }
+  .main-inner { padding: 28px; max-width: 1100px; }
+
+  /* SECTION HEADER */
+  .section-header { margin-bottom: 24px; }
+  .section-title {
+    font-size: 20px; font-weight: 600; letter-spacing: -0.5px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-desc { color: var(--text2); font-size: 13px; margin-top: 4px; }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    color: var(--text3); letter-spacing: 1px; text-transform: uppercase;
+    margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card-title .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+  }
+
+  /* FORM GRID */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1 / -1; }
+
+  label {
+    font-size: 12px; color: var(--text2); font-weight: 500;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .tooltip-icon {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--surface3); border: 1px solid var(--border);
+    color: var(--text3); font-size: 9px; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: help; position: relative;
+  }
+  .tooltip-icon:hover::after {
+    content: attr(data-tip);
+    position: absolute; left: 20px; top: -4px; z-index: 200;
+    background: #1e2433; border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px 12px; width: 240px;
+    font-size: 11px; color: var(--text2); line-height: 1.5;
+    font-weight: 400; white-space: normal; pointer-events: none;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  }
+
+  input, select {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px 11px;
+    color: var(--text); font-family: var(--mono); font-size: 13px;
+    outline: none; transition: border-color 0.15s; width: 100%;
+    -webkit-appearance: none;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  select { cursor: pointer; }
+  input::placeholder { color: var(--text3); }
+
+  /* BUTTONS */
+  .btn-row { display: flex; gap: 10px; margin-top: 8px; }
+  .btn {
+    padding: 10px 20px; border-radius: 7px; font-size: 13px; font-weight: 500;
+    cursor: pointer; border: none; transition: all 0.15s; font-family: var(--sans);
+    display: flex; align-items: center; gap: 7px;
+  }
+  .btn-primary {
+    background: var(--accent); color: #fff;
+  }
+  .btn-primary:hover { background: #3a7ef5; }
+  .btn-secondary {
+    background: var(--surface3); color: var(--text2);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { background: var(--surface2); color: var(--text); }
+  .btn-ai {
+    background: linear-gradient(135deg, #4f46e5, #7c5cfc);
+    color: #fff;
+  }
+  .btn-ai:hover { opacity: 0.9; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* RESULTS */
+  .result-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .result-card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px;
+  }
+  .result-label { font-size: 11px; color: var(--text3); font-family: var(--mono); letter-spacing: 0.5px; margin-bottom: 6px; }
+  .result-value {
+    font-family: var(--mono); font-size: 22px; font-weight: 600; color: var(--text);
+  }
+  .result-sub { font-size: 11px; color: var(--text2); margin-top: 3px; }
+  .result-value.green { color: var(--green); }
+  .result-value.yellow { color: var(--yellow); }
+  .result-value.red { color: var(--red); }
+
+  /* LEVEL BADGE */
+  .level-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    border-radius: 6px; padding: 6px 12px;
+    font-family: var(--mono); font-size: 13px; font-weight: 600;
+  }
+  .level-1 { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+  .level-2 { background: rgba(234,179,8,0.15); color: var(--yellow); border: 1px solid rgba(234,179,8,0.3); }
+  .level-3 { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+
+  /* SENSITIVITY TABLE */
+  .sens-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; }
+  .sens-table th {
+    background: var(--surface3); color: var(--text2);
+    padding: 8px 12px; text-align: right; font-weight: 500;
+    border: 1px solid var(--border); font-size: 11px;
+  }
+  .sens-table th:first-child { text-align: left; }
+  .sens-table td {
+    padding: 7px 12px; border: 1px solid var(--border);
+    text-align: right; color: var(--text2);
+  }
+  .sens-table td:first-child { text-align: left; color: var(--text3); }
+  .sens-table td.base { color: var(--accent); font-weight: 600; }
+  .sens-table td.up { color: var(--green); }
+  .sens-table td.down { color: var(--red); }
+  .sens-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* MEMO */
+  .memo-box {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 20px;
+    font-family: var(--sans); font-size: 13px; line-height: 1.8;
+    color: var(--text2); white-space: pre-wrap;
+    min-height: 200px;
+  }
+  .memo-box.loading { color: var(--text3); font-style: italic; }
+
+  /* HIDDEN */
+  .instrument-panel { display: none; }
+  .instrument-panel.active { display: block; }
+
+  /* DIVIDER */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  /* CLASSIFICATION ROW */
+  .class-row {
+    display: flex; align-items: flex-start; gap: 16px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px;
+  }
+  .class-info { flex: 1; }
+  .class-title { font-weight: 500; font-size: 14px; margin-bottom: 4px; }
+  .class-reason { font-size: 12px; color: var(--text2); line-height: 1.6; }
+
+  /* MONTE CARLO VIZ */
+  canvas { border-radius: 6px; width: 100%; }
+
+  /* SPINNER */
+  .spinner {
+    width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff; border-radius: 50%;
+    animation: spin 0.6s linear infinite; display: inline-block;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* PRINT / EXPORT */
+  @media print {
+    .sidebar, .btn-row, .header { display: none; }
+    .layout { grid-template-columns: 1fr; }
+    body { background: #fff; color: #000; }
+    .card { border: 1px solid #ccc; background: #fff; }
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--surface); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* RESPONSIVE COLLAPSE */
+  @media (max-width: 768px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
+    .result-grid { grid-template-columns: 1fr 1fr; }
+    .form-grid, .form-grid-3 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <div class="logo">IVM</div>
+    <div>
+      <div class="header-title">Independent Valuation Model</div>
+      <div class="header-sub">ASC 820 · Fair Value Measurement</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <span class="badge">AUDITOR USE ONLY</span>
+    <span class="badge" id="timestamp"></span>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Instrument Type</div>
+      <div class="instrument-list">
+        <button class="instrument-btn active" onclick="switchInstrument('swap')">
+          <span class="icon">⇄</span> Interest Rate Swap
+          <span class="method-tag">DCF</span>
+        </button>
+        <button class="instrument-btn" onclick="switchInstrument('forward')">
+          <span class="icon">→</span> Forward Contract
+          <span class="method-tag">DCF</span>
+        </button>
+        <button class="instrument-btn" onclick="switchInstrument('future')">
+          <span class="icon">◈</span> Futures Contract
+          <span class="method-tag">MKT</span>
+        </button>
+        <button class="instrument-btn" onclick="switchInstrument('convertible')">
+          <span class="icon">⟳</span> Convertible Note
+          <span class="method-tag">DCF+BS</span>
+        </button>
+        <button class="instrument-btn" onclick="switchInstrument('option')">
+          <span class="icon">◎</span> Options / Warrants
+          <span class="method-tag">B-S / MC</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Valuation Date</div>
+      <input type="date" id="val-date" style="width:100%;" />
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Auditor Reference</div>
+      <input type="text" id="auditor-ref" placeholder="e.g. WP-FV-2024-001" style="width:100%;margin-bottom:8px;" />
+      <input type="text" id="client-name" placeholder="Client / Entity name" style="width:100%;" />
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Quick Actions</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <button class="btn btn-primary" onclick="runValuation()" style="width:100%;justify-content:center;">▶ Run Valuation</button>
+        <button class="btn btn-ai" onclick="generateMemo()" style="width:100%;justify-content:center;" id="memo-btn">✦ Generate AI Memo</button>
+        <button class="btn btn-secondary" onclick="window.print()" style="width:100%;justify-content:center;">⎙ Print / Export</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="main-inner">
+
+      <!-- ====== INTEREST RATE SWAP ====== -->
+      <div class="instrument-panel active" id="panel-swap">
+        <div class="section-header">
+          <div class="section-title">⇄ Interest Rate Swap Valuation</div>
+          <div class="section-desc">DCF methodology — present value of fixed vs. floating legs. Typical ASC 820 Level 2.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>Instrument Terms</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Notional Principal ($) <span class="tooltip-icon" data-tip="The face amount used to calculate payment obligations. Not exchanged between parties.">?</span></label>
+              <input type="number" id="sw-notional" value="10000000" />
+            </div>
+            <div class="form-group">
+              <label>Remaining Term (years) <span class="tooltip-icon" data-tip="Number of years until the swap matures.">?</span></label>
+              <input type="number" id="sw-term" value="5" step="0.5" />
+            </div>
+            <div class="form-group">
+              <label>Fixed Rate (%) <span class="tooltip-icon" data-tip="The contractual fixed rate being paid by the entity under audit. Enter as percentage (e.g., 3.5).">?</span></label>
+              <input type="number" id="sw-fixed" value="3.5" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label>Current SOFR / Floating Rate (%) <span class="tooltip-icon" data-tip="Current market floating rate benchmark (SOFR or equivalent). Source from Bloomberg, Fed H.15, or ICE.">?</span></label>
+              <input type="number" id="sw-float" value="5.25" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label>Payment Frequency <span class="tooltip-icon" data-tip="How often net payments are exchanged between counterparties.">?</span></label>
+              <select id="sw-freq">
+                <option value="4">Quarterly</option>
+                <option value="2">Semi-Annual</option>
+                <option value="1">Annual</option>
+                <option value="12">Monthly</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Discount Rate (%) <span class="tooltip-icon" data-tip="OIS or risk-free rate used to discount cash flows. Should match payment currency and term.">?</span></label>
+              <input type="number" id="sw-disc" value="5.0" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label>CVA Adjustment ($) <span class="tooltip-icon" data-tip="Credit Valuation Adjustment — adjustment for counterparty credit risk. Leave 0 if collateralized under CSA.">?</span></label>
+              <input type="number" id="sw-cva" value="0" />
+            </div>
+            <div class="form-group">
+              <label>Entity Position <span class="tooltip-icon" data-tip="Is the entity paying fixed and receiving floating, or vice versa?">?</span></label>
+              <select id="sw-pos">
+                <option value="pay-fixed">Pay Fixed / Receive Float</option>
+                <option value="pay-float">Pay Float / Receive Fixed</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div id="results-swap" style="display:none;"></div>
+      </div>
+
+      <!-- ====== FORWARD CONTRACT ====== -->
+      <div class="instrument-panel" id="panel-forward">
+        <div class="section-header">
+          <div class="section-title">→ Forward Contract Valuation</div>
+          <div class="section-desc">Present value of locked-in price vs. current forward price. Typically ASC 820 Level 2.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>Contract Terms</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Contract Price ($) <span class="tooltip-icon" data-tip="The agreed delivery price in the forward contract.">?</span></label>
+              <input type="number" id="fw-strike" value="100" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label>Current Spot Price ($) <span class="tooltip-icon" data-tip="Current market price of the underlying asset on the valuation date.">?</span></label>
+              <input type="number" id="fw-spot" value="108" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label>Risk-Free Rate (%) <span class="tooltip-icon" data-tip="Continuous risk-free rate for the applicable term. Use OIS or T-bill rate.">?</span></label>
+              <input type="number" id="fw-rfr" value="5.0" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label>Time to Maturity (years) <span class="tooltip-icon" data-tip="Remaining time in years until the forward contract settles.">?</span></label>
+              <input type="number" id="fw-time" value="1" step="0.05" />
+            </div>
+            <div class="form-group">
+              <label>Convenience Yield / Dividend (%) <span class="tooltip-icon" data-tip="For commodities, enter convenience yield. For equity, enter dividend yield. For FX, enter foreign rate.">?</span></label>
+              <input type="number" id="fw-div" value="0" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label>Contract Size (units) <span class="tooltip-icon" data-tip="Number of units / barrels / notional covered by the forward.">?</span></label>
+              <input type="number" id="fw-size" value="1000" />
+            </div>
+            <div class="form-group">
+              <label>Position <span class="tooltip-icon" data-tip="Is the entity long (buyer) or short (seller) the forward?">?</span></label>
+              <select id="fw-pos">
+                <option value="long">Long (Buyer)</option>
+                <option value="short">Short (Seller)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div id="results-forward" style="display:none;"></div>
+      </div>
+
+      <!-- ====== FUTURES ====== -->
+      <div class="instrument-panel" id="panel-future">
+        <div class="section-header">
+          <div class="section-title">◈ Futures Contract Valuation</div>
+          <div class="section-desc">Mark-to-market using exchange settlement prices. Typically ASC 820 Level 1 (exchange-traded).</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>Contract Details</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Entry Price ($) <span class="tooltip-icon" data-tip="The price at which the futures contract was originally entered.">?</span></label>
+              <input type="number" id="ft-entry" value="95.50" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label>Current Settlement Price ($) <span class="tooltip-icon" data-tip="Exchange daily settlement / closing price on the valuation date. Source from CME, ICE, etc.">?</span></label>
+              <input type="number" id="ft-settle" value="102.30" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label>Contract Multiplier <span class="tooltip-icon" data-tip="Number of units per contract (e.g., S&amp;P 500 futures = $50/point, crude oil = 1,000 bbl).">?</span></label>
+              <input type="number" id="ft-mult" value="1000" />
+            </div>
+            <div class="form-group">
+              <label>Number of Contracts <span class="tooltip-icon" data-tip="Total number of futures contracts held.">?</span></label>
+              <input type="number" id="ft-qty" value="10" />
+            </div>
+            <div class="form-group">
+              <label>Initial Margin Posted ($) <span class="tooltip-icon" data-tip="Cash or securities posted as margin. Not the fair value, but relevant for footnote disclosure.">?</span></label>
+              <input type="number" id="ft-margin" value="50000" />
+            </div>
+            <div class="form-group">
+              <label>Position <span class="tooltip-icon" data-tip="Long = entity benefits from price increase. Short = entity benefits from price decrease.">?</span></label>
+              <select id="ft-pos">
+                <option value="long">Long</option>
+                <option value="short">Short</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div id="results-future" style="display:none;"></div>
+      </div>
+
+      <!-- ====== CONVERTIBLE NOTE ====== -->
+      <div class="instrument-panel" id="panel-convertible">
+        <div class="section-header">
+          <div class="section-title">⟳ Convertible Note Valuation</div>
+          <div class="section-desc">Bifurcated model: straight debt (DCF) + embedded conversion option (Black-Scholes). ASC 820 Level 3 typical.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>Debt Component</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Face Value ($) <span class="tooltip-icon" data-tip="Par value of the convertible note at maturity.">?</span></label>
+              <input type="number" id="cn-face" value="5000000" />
+            </div>
+            <div class="form-group">
+              <label>Coupon Rate (%) <span class="tooltip-icon" data-tip="Annual coupon rate paid on the note. PIK or zero-coupon enter 0.">?</span></label>
+              <input type="number" id="cn-coupon" value="2.0" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label>Term (years) <span class="tooltip-icon" data-tip="Remaining term to maturity of the note.">?</span></label>
+              <input type="number" id="cn-term" value="3" step="0.5" />
+            </div>
+            <div class="form-group">
+              <label>Market Discount Rate (%) <span class="tooltip-icon" data-tip="Credit-adjusted discount rate for straight debt (non-convertible equivalent). Reflects issuer's credit risk.">?</span></label>
+              <input type="number" id="cn-disc" value="8.0" step="0.01" />
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>Equity Conversion Option</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Conversion Price ($) <span class="tooltip-icon" data-tip="Price per share at which the note converts to equity.">?</span></label>
+              <input type="number" id="cn-convpx" value="12.00" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label>Current Share Price ($) <span class="tooltip-icon" data-tip="Fair value of the underlying equity on the valuation date.">?</span></label>
+              <input type="number" id="cn-stock" value="9.50" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label>Volatility (%) <span class="tooltip-icon" data-tip="Annualized historical or implied volatility of the underlying equity. Key Level 3 input — document source.">?</span></label>
+              <input type="number" id="cn-vol" value="45" step="1" />
+            </div>
+            <div class="form-group">
+              <label>Risk-Free Rate (%) <span class="tooltip-icon" data-tip="Risk-free rate matching the option term. Use Treasury yield curve.">?</span></label>
+              <input type="number" id="cn-rfr" value="5.0" step="0.01" />
+            </div>
+          </div>
+        </div>
+        <div id="results-convertible" style="display:none;"></div>
+      </div>
+
+      <!-- ====== OPTIONS / WARRANTS ====== -->
+      <div class="instrument-panel" id="panel-option">
+        <div class="section-header">
+          <div class="section-title">◎ Options &amp; Warrants Valuation</div>
+          <div class="section-desc">Black-Scholes analytical + Monte Carlo simulation (1,000 paths). Level 2 if exchange-traded; Level 3 if private/OTC.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>Option Parameters</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Spot / Stock Price ($) <span class="tooltip-icon" data-tip="Current market price of the underlying security on the valuation date.">?</span></label>
+              <input type="number" id="op-spot" value="50" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label>Strike Price ($) <span class="tooltip-icon" data-tip="The exercise price at which the option/warrant can be exercised.">?</span></label>
+              <input type="number" id="op-strike" value="55" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label>Time to Expiry (years) <span class="tooltip-icon" data-tip="Remaining time in years. Warrants may have 5–10 year terms.">?</span></label>
+              <input type="number" id="op-time" value="2" step="0.05" />
+            </div>
+            <div class="form-group">
+              <label>Risk-Free Rate (%) <span class="tooltip-icon" data-tip="Continuous risk-free rate. Match to option expiry on Treasury yield curve.">?</span></label>
+              <input type="number" id="op-rfr" value="5.0" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label>Volatility (%) <span class="tooltip-icon" data-tip="Annualized volatility. For exchange options, use implied vol from market. For private warrants, use comparable public company historical vol — key Level 3 input.">?</span></label>
+              <input type="number" id="op-vol" value="35" step="1" />
+            </div>
+            <div class="form-group">
+              <label>Dividend Yield (%) <span class="tooltip-icon" data-tip="Continuous dividend yield. Enter 0 for non-dividend paying companies.">?</span></label>
+              <input type="number" id="op-div" value="0" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label>Option Type <span class="tooltip-icon" data-tip="Call gives right to buy; Put gives right to sell.">?</span></label>
+              <select id="op-type">
+                <option value="call">Call</option>
+                <option value="put">Put</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Instrument Subtype <span class="tooltip-icon" data-tip="Warrants are often dilutive (issued by the company). Options may be exchange-traded or OTC.">?</span></label>
+              <select id="op-sub">
+                <option value="option-exchange">Exchange-Traded Option</option>
+                <option value="option-otc">OTC Option</option>
+                <option value="warrant">Warrant (Company-issued)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Number of Contracts / Units <span class="tooltip-icon" data-tip="For exchange options: each contract covers 100 shares. For warrants: enter total warrant count.">?</span></label>
+              <input type="number" id="op-qty" value="100" />
+            </div>
+          </div>
+        </div>
+        <div id="results-option" style="display:none;"></div>
+      </div>
+
+      <!-- AI MEMO SECTION (always visible after run) -->
+      <div id="memo-section" style="display:none;" class="card">
+        <div class="card-title"><span class="dot" style="background:var(--accent2)"></span>AI-GENERATED AUDIT MEMO (ASC 820)</div>
+        <div class="memo-box loading" id="memo-output">Click "✦ Generate AI Memo" to produce an ASC 820-compliant audit memorandum for this valuation.</div>
+        <div style="margin-top:12px;display:flex;gap:8px;">
+          <button class="btn btn-secondary" onclick="copyMemo()">⎘ Copy Memo Text</button>
+        </div>
+      </div>
+
+    </div><!-- /main-inner -->
+  </main>
+</div>
+
+<script>
+// =====================================================
+// STATE
+// =====================================================
+let currentInstrument = 'swap';
+let lastResults = null;
+
+// Set today's date
+document.getElementById('val-date').valueAsDate = new Date();
+document.getElementById('timestamp').textContent = new Date().toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'});
+
+// =====================================================
+// NAVIGATION
+// =====================================================
+function switchInstrument(name) {
+  currentInstrument = name;
+  document.querySelectorAll('.instrument-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.instrument-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+  document.getElementById('memo-section').style.display = 'none';
+}
+
+// =====================================================
+// MATH HELPERS
+// =====================================================
+function normCDF(x) {
+  const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;
+  const sign = x < 0 ? -1 : 1;
+  x = Math.abs(x) / Math.sqrt(2);
+  const t = 1/(1+p*x);
+  const y = 1-(((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x);
+  return 0.5*(1+sign*y);
+}
+
+function blackScholes(S, K, T, r, sigma, q, type) {
+  if (T <= 0) return type === 'call' ? Math.max(S-K,0) : Math.max(K-S,0);
+  const d1 = (Math.log(S/K) + (r - q + 0.5*sigma*sigma)*T) / (sigma*Math.sqrt(T));
+  const d2 = d1 - sigma*Math.sqrt(T);
+  if (type === 'call') return S*Math.exp(-q*T)*normCDF(d1) - K*Math.exp(-r*T)*normCDF(d2);
+  return K*Math.exp(-r*T)*normCDF(-d2) - S*Math.exp(-q*T)*normCDF(-d1);
+}
+
+function bsDelta(S, K, T, r, sigma, q, type) {
+  if (T <= 0) return 0;
+  const d1 = (Math.log(S/K) + (r - q + 0.5*sigma*sigma)*T) / (sigma*Math.sqrt(T));
+  return type === 'call' ? Math.exp(-q*T)*normCDF(d1) : -Math.exp(-q*T)*normCDF(-d1);
+}
+
+function bsVega(S, K, T, r, sigma, q) {
+  if (T <= 0) return 0;
+  const d1 = (Math.log(S/K) + (r - q + 0.5*sigma*sigma)*T) / (sigma*Math.sqrt(T));
+  return S * Math.exp(-q*T) * Math.sqrt(T) * Math.exp(-0.5*d1*d1) / Math.sqrt(2*Math.PI);
+}
+
+function monteCarlo(S, K, T, r, sigma, q, type, n=1000) {
+  let sum = 0, sum2 = 0;
+  const paths = [];
+  for (let i = 0; i < n; i++) {
+    const u1 = Math.random(), u2 = Math.random();
+    const z = Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2);
+    const ST = S * Math.exp((r - q - 0.5*sigma*sigma)*T + sigma*Math.sqrt(T)*z);
+    const payoff = type === 'call' ? Math.max(ST-K,0) : Math.max(K-ST,0);
+    const pv = payoff * Math.exp(-r*T);
+    sum += pv; sum2 += pv*pv;
+    paths.push(ST);
+  }
+  const mean = sum/n;
+  const stdErr = Math.sqrt((sum2/n - mean*mean)/n);
+  return {mean, stdErr, paths: paths.sort((a,b)=>a-b)};
+}
+
+function fmt(n, decimals=0) {
+  if (Math.abs(n) >= 1e6) return '$' + (n/1e6).toFixed(2) + 'M';
+  if (Math.abs(n) >= 1e3) return '$' + n.toLocaleString('en-US', {minimumFractionDigits:decimals,maximumFractionDigits:decimals});
+  return '$' + n.toFixed(decimals > 0 ? decimals : 2);
+}
+function fmtN(n,d=2) { return n.toFixed(d); }
+function fmtPct(n) { return (n*100).toFixed(2) + '%'; }
+
+// =====================================================
+// VALUATION ENGINES
+// =====================================================
+
+function valueSwap() {
+  const N = parseFloat(document.getElementById('sw-notional').value);
+  const T = parseFloat(document.getElementById('sw-term').value);
+  const fixedRate = parseFloat(document.getElementById('sw-fixed').value)/100;
+  const floatRate = parseFloat(document.getElementById('sw-float').value)/100;
+  const discRate = parseFloat(document.getElementById('sw-disc').value)/100;
+  const cva = parseFloat(document.getElementById('sw-cva').value);
+  const freq = parseFloat(document.getElementById('sw-freq').value);
+  const pos = document.getElementById('sw-pos').value;
+  const dt = 1/freq;
+  const nPeriods = Math.round(T*freq);
+  let pvFixed = 0, pvFloat = 0;
+  for (let i = 1; i <= nPeriods; i++) {
+    const t = i*dt;
+    const df = Math.exp(-discRate*t);
+    pvFixed += fixedRate * dt * N * df;
+    pvFloat += floatRate * dt * N * df;
+  }
+  pvFixed += N * Math.exp(-discRate*T);
+  pvFloat += N * Math.exp(-discRate*T);
+  let fv = pos === 'pay-fixed' ? (pvFloat - pvFixed) - cva : (pvFixed - pvFloat) - cva;
+  const level = Math.abs(cva) > 0 ? 2 : 2;
+  const sensBps = [];
+  for (const shift of [-100,-50,-25,0,25,50,100]) {
+    const fr2 = discRate + shift/10000;
+    let pvF2=0, pvFl2=0;
+    for (let i=1;i<=nPeriods;i++){
+      const t=i*dt; const df2=Math.exp(-fr2*t);
+      pvF2+=fixedRate*dt*N*df2; pvFl2+=floatRate*dt*N*df2;
+    }
+    pvF2+=N*Math.exp(-fr2*T); pvFl2+=N*Math.exp(-fr2*T);
+    const fv2 = pos==='pay-fixed'?(pvFl2-pvF2)-cva:(pvF2-pvFl2)-cva;
+    sensBps.push({label: (shift>=0?'+':'')+shift+'bps', val: fv2});
+  }
+  return {fv, pvFixed, pvFloat, level, sensBps, instrument:'Interest Rate Swap'};
+}
+
+function valueForward() {
+  const K = parseFloat(document.getElementById('fw-strike').value);
+  const S = parseFloat(document.getElementById('fw-spot').value);
+  const r = parseFloat(document.getElementById('fw-rfr').value)/100;
+  const T = parseFloat(document.getElementById('fw-time').value);
+  const q = parseFloat(document.getElementById('fw-div').value)/100;
+  const size = parseFloat(document.getElementById('fw-size').value);
+  const pos = document.getElementById('fw-pos').value;
+  const F0 = S * Math.exp((r-q)*T);
+  let pvUnit = (F0 - K) * Math.exp(-r*T);
+  if (pos === 'short') pvUnit = -pvUnit;
+  const fv = pvUnit * size;
+  const sens = [];
+  for (const spotShift of [-20,-10,-5,0,5,10,20]) {
+    const S2 = S*(1+spotShift/100);
+    const F2 = S2*Math.exp((r-q)*T);
+    let pv2 = (F2-K)*Math.exp(-r*T);
+    if (pos==='short') pv2=-pv2;
+    sens.push({label:(spotShift>=0?'+':'')+spotShift+'% spot', val: pv2*size});
+  }
+  return {fv, F0, pvUnit, level:2, sens, instrument:'Forward Contract'};
+}
+
+function valueFuture() {
+  const entry = parseFloat(document.getElementById('ft-entry').value);
+  const settle = parseFloat(document.getElementById('ft-settle').value);
+  const mult = parseFloat(document.getElementById('ft-mult').value);
+  const qty = parseFloat(document.getElementById('ft-qty').value);
+  const pos = document.getElementById('ft-pos').value;
+  let diff = settle - entry;
+  if (pos==='short') diff = -diff;
+  const fv = diff * mult * qty;
+  const notional = settle * mult * qty;
+  return {fv, settle, entry, notional, level:1, instrument:'Futures Contract'};
+}
+
+function valueConvertible() {
+  const F = parseFloat(document.getElementById('cn-face').value);
+  const c = parseFloat(document.getElementById('cn-coupon').value)/100;
+  const T = parseFloat(document.getElementById('cn-term').value);
+  const r = parseFloat(document.getElementById('cn-disc').value)/100;
+  const K = parseFloat(document.getElementById('cn-convpx').value);
+  const S = parseFloat(document.getElementById('cn-stock').value);
+  const sigma = parseFloat(document.getElementById('cn-vol').value)/100;
+  const rfr = parseFloat(document.getElementById('cn-rfr').value)/100;
+  // DCF straight debt
+  let pvDebt = 0;
+  for (let i=1;i<=Math.round(T*2);i++) {
+    pvDebt += (c/2*F) * Math.exp(-r*(i/2));
+  }
+  pvDebt += F * Math.exp(-r*T);
+  // Shares per note
+  const shares = F / K;
+  const optVal = blackScholes(S, K, T, rfr, sigma, 0, 'call') * shares;
+  const fv = pvDebt + optVal;
+  const sens = [];
+  for (const vShift of [-20,-10,0,10,20]) {
+    const s2 = Math.max(0.01, sigma+vShift/100);
+    const o2 = blackScholes(S,K,T,rfr,s2,0,'call')*shares;
+    sens.push({label:(vShift>=0?'+':'')+vShift+'% vol', val: pvDebt+o2});
+  }
+  return {fv, pvDebt, optVal, level:3, sens, instrument:'Convertible Note'};
+}
+
+function valueOption() {
+  const S = parseFloat(document.getElementById('op-spot').value);
+  const K = parseFloat(document.getElementById('op-strike').value);
+  const T = parseFloat(document.getElementById('op-time').value);
+  const r = parseFloat(document.getElementById('op-rfr').value)/100;
+  const sigma = parseFloat(document.getElementById('op-vol').value)/100;
+  const q = parseFloat(document.getElementById('op-div').value)/100;
+  const type = document.getElementById('op-type').value;
+  const sub = document.getElementById('op-sub').value;
+  const qty = parseFloat(document.getElementById('op-qty').value);
+  const multiplier = sub === 'option-exchange' ? 100 : 1;
+  const bsVal = blackScholes(S,K,T,r,sigma,q,type);
+  const delta = bsDelta(S,K,T,r,sigma,q,type);
+  const vega = bsVega(S,K,T,r,sigma,q);
+  const mc = monteCarlo(S,K,T,r,sigma,q,type,1000);
+  const fv = bsVal * qty * multiplier;
+  const mcFv = mc.mean * qty * multiplier;
+  const level = sub==='option-exchange' ? 2 : 3;
+  const sens = [];
+  for (const vShift of [-15,-10,-5,0,5,10,15]) {
+    const s2=Math.max(0.01,sigma+vShift/100);
+    const bv2=blackScholes(S,K,T,r,s2,q,type)*qty*multiplier;
+    sens.push({label:(vShift>=0?'+':'')+vShift+'% vol', val:bv2});
+  }
+  return {fv, mcFv, bsVal, delta, vega, mc, qty, multiplier, level, sens, instrument: sub==='warrant'?'Warrant':'Stock Option'};
+}
+
+// =====================================================
+// RENDER RESULTS
+// =====================================================
+function levelBadge(lvl, reason) {
+  const cls = `level-${lvl}`;
+  const labels = {1:'Level 1 — Quoted Market Price',2:'Level 2 — Observable Inputs',3:'Level 3 — Unobservable Inputs'};
+  return `<div class="class-row">
+    <div><span class="level-badge ${cls}">◉ ${labels[lvl]}</span></div>
+    <div class="class-info">
+      <div class="class-reason">${reason}</div>
+    </div>
+  </div>`;
+}
+
+function sensTable(rows, baseIndex=3) {
+  let html = `<table class="sens-table"><thead><tr><th>Scenario</th><th>Fair Value</th><th>vs. Base</th></tr></thead><tbody>`;
+  const base = rows[baseIndex].val;
+  rows.forEach((row,i) => {
+    const diff = row.val - base;
+    const cls = i===baseIndex ? 'base' : diff>=0 ? 'up' : 'down';
+    html += `<tr><td>${row.label}</td><td class="${cls}">${fmt(row.val)}</td><td class="${i===baseIndex?'base':diff>=0?'up':'down'}">${i===baseIndex?'—':(diff>=0?'+':'')+fmt(diff)}</td></tr>`;
+  });
+  return html + '</tbody></table>';
+}
+
+function renderResults(id, data) {
+  const el = document.getElementById(id);
+  const lvlReasons = {
+    1:'Exchange-traded futures prices are quoted in active markets (ASC 820-10-35-37). No adjustment required. Confirm settlement prices sourced directly from exchange (CME, ICE, NYMEX).',
+    2:'Significant inputs are observable: yield curves, spot rates, credit spreads, implied volatility from active markets. Model-derived but inputs verifiable. Document sources (Bloomberg, Reuters).',
+    3:'One or more significant inputs are unobservable (volatility, discount rate, credit risk). Requires robust unobservable input documentation and sensitivity disclosure under ASC 820-10-50-2(bbb).'
+  };
+
+  let html = `<div class="card"><div class="card-title"><span class="dot" style="background:var(--green)"></span>VALUATION RESULTS</div>`;
+  html += `<div class="result-grid">`;
+
+  if (data.instrument === 'Interest Rate Swap') {
+    const col = data.fv >= 0 ? 'green' : 'red';
+    html += `<div class="result-card"><div class="result-label">FAIR VALUE (NET)</div><div class="result-value ${col}">${fmt(data.fv)}</div><div class="result-sub">After CVA adjustment</div></div>`;
+    html += `<div class="result-card"><div class="result-label">PV FIXED LEG</div><div class="result-value">${fmt(data.pvFixed)}</div></div>`;
+    html += `<div class="result-card"><div class="result-label">PV FLOAT LEG</div><div class="result-value">${fmt(data.pvFloat)}</div></div>`;
+    html += `</div><hr class="divider"/>`;
+    html += `<div class="card-title" style="margin-top:0"><span class="dot"></span>SENSITIVITY — PARALLEL RATE SHIFT</div>`;
+    html += sensTable(data.sensBps, 3);
+  } else if (data.instrument === 'Forward Contract') {
+    const col = data.fv >= 0 ? 'green' : 'red';
+    html += `<div class="result-card"><div class="result-label">FAIR VALUE</div><div class="result-value ${col}">${fmt(data.fv)}</div></div>`;
+    html += `<div class="result-card"><div class="result-label">CURRENT FWD PRICE</div><div class="result-value">${fmt(data.F0)}</div><div class="result-sub">F₀ = S·e^(r-q)T</div></div>`;
+    html += `<div class="result-card"><div class="result-label">FAIR VALUE / UNIT</div><div class="result-value ${col}">${fmt(data.pvUnit)}</div></div>`;
+    html += `</div><hr class="divider"/>`;
+    html += `<div class="card-title" style="margin-top:0"><span class="dot"></span>SENSITIVITY — SPOT PRICE</div>`;
+    html += sensTable(data.sens, 3);
+  } else if (data.instrument === 'Futures Contract') {
+    const col = data.fv >= 0 ? 'green' : 'red';
+    html += `<div class="result-card"><div class="result-label">UNREALIZED P&amp;L</div><div class="result-value ${col}">${fmt(data.fv)}</div><div class="result-sub">MTM fair value</div></div>`;
+    html += `<div class="result-card"><div class="result-label">NOTIONAL EXPOSURE</div><div class="result-value">${fmt(data.notional)}</div><div class="result-sub">At settlement price</div></div>`;
+    html += `<div class="result-card"><div class="result-label">PRICE MOVE</div><div class="result-value ${col}">${fmt(data.settle - data.entry)}/unit</div></div>`;
+    html += `</div>`;
+  } else if (data.instrument === 'Convertible Note') {
+    html += `<div class="result-card"><div class="result-label">TOTAL FAIR VALUE</div><div class="result-value green">${fmt(data.fv)}</div></div>`;
+    html += `<div class="result-card"><div class="result-label">DEBT COMPONENT</div><div class="result-value">${fmt(data.pvDebt)}</div><div class="result-sub">Straight bond DCF</div></div>`;
+    html += `<div class="result-card"><div class="result-label">OPTION COMPONENT</div><div class="result-value">${fmt(data.optVal)}</div><div class="result-sub">Black-Scholes (conversion)</div></div>`;
+    html += `</div><hr class="divider"/>`;
+    html += `<div class="card-title" style="margin-top:0"><span class="dot"></span>SENSITIVITY — VOLATILITY</div>`;
+    html += sensTable(data.sens, 2);
+  } else {
+    // Option / Warrant
+    const col = 'green';
+    html += `<div class="result-card"><div class="result-label">BLACK-SCHOLES FV</div><div class="result-value ${col}">${fmt(data.fv)}</div><div class="result-sub">Per-unit: ${fmt(data.bsVal)}</div></div>`;
+    html += `<div class="result-card"><div class="result-label">MONTE CARLO FV</div><div class="result-value">${fmt(data.mcFv)}</div><div class="result-sub">±${fmt(data.mc.stdErr*data.qty*data.multiplier)} (1 s.e., n=1000)</div></div>`;
+    html += `<div class="result-card"><div class="result-label">DELTA</div><div class="result-value">${fmtN(data.delta,4)}</div><div class="result-sub">Vega: ${fmtN(data.vega,2)}</div></div>`;
+    html += `</div><hr class="divider"/>`;
+    html += `<div class="card-title" style="margin-top:0"><span class="dot"></span>SENSITIVITY — VOLATILITY</div>`;
+    html += sensTable(data.sens, 3);
+    // MC distribution bar
+    html += `<div style="margin-top:16px"><div class="card-title"><span class="dot"></span>MONTE CARLO — TERMINAL PRICE DISTRIBUTION (n=1,000)</div>`;
+    html += `<canvas id="mc-canvas" height="120"></canvas></div>`;
+  }
+
+  html += `</div><div class="card" style="margin-bottom:16px"><div class="card-title"><span class="dot" style="background:var(--yellow)"></span>ASC 820 FAIR VALUE HIERARCHY CLASSIFICATION</div>`;
+  html += levelBadge(data.level, lvlReasons[data.level]);
+  html += `</div>`;
+
+  el.innerHTML = html;
+  el.style.display = 'block';
+
+  // Draw MC chart
+  if (data.mc) {
+    setTimeout(() => drawMCHistogram(data.mc.paths), 50);
+  }
+
+  lastResults = data;
+  document.getElementById('memo-section').style.display = 'block';
+  document.getElementById('memo-output').textContent = 'Click "✦ Generate AI Memo" in the sidebar to produce an ASC 820-compliant audit memorandum.';
+  document.getElementById('memo-output').classList.add('loading');
+}
+
+function drawMCHistogram(paths) {
+  const canvas = document.getElementById('mc-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth * 2;
+  canvas.height = 240;
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+  const bins = 40;
+  const min = paths[0], max = paths[paths.length-1];
+  const binW = (max-min)/bins;
+  const counts = new Array(bins).fill(0);
+  paths.forEach(p => {
+    const b = Math.min(bins-1, Math.floor((p-min)/binW));
+    counts[b]++;
+  });
+  const maxCount = Math.max(...counts);
+  const barW = W/bins;
+  const accent = '#4f8ef7';
+  counts.forEach((c,i) => {
+    const x = i*barW;
+    const h = (c/maxCount)*(H-30);
+    const pct = i/bins;
+    ctx.fillStyle = pct < 0.2 ? '#ef4444' : pct > 0.8 ? '#22c55e' : accent;
+    ctx.globalAlpha = 0.75;
+    ctx.fillRect(x+1, H-h-20, barW-2, h);
+  });
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = '#64748b'; ctx.font = `${22}px IBM Plex Mono`;
+  ctx.fillText(new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(min), 4, H-4);
+  ctx.textAlign = 'right';
+  ctx.fillText(new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(max), W-4, H-4);
+}
+
+// =====================================================
+// RUN VALUATION
+// =====================================================
+function runValuation() {
+  let data;
+  if (currentInstrument === 'swap') data = valueSwap();
+  else if (currentInstrument === 'forward') data = valueForward();
+  else if (currentInstrument === 'future') data = valueFuture();
+  else if (currentInstrument === 'convertible') data = valueConvertible();
+  else data = valueOption();
+  renderResults('results-' + currentInstrument, data);
+}
+
+// =====================================================
+// AI MEMO GENERATION
+// =====================================================
+async function generateMemo() {
+  if (!lastResults) { alert('Please run a valuation first.'); return; }
+  const memoEl = document.getElementById('memo-output');
+  const btn = document.getElementById('memo-btn');
+  memoEl.classList.add('loading');
+  memoEl.innerHTML = '<span class="spinner"></span> Generating audit memo...';
+  btn.disabled = true;
+
+  const date = document.getElementById('val-date').value || new Date().toISOString().slice(0,10);
+  const ref = document.getElementById('auditor-ref').value || 'N/A';
+  const client = document.getElementById('client-name').value || '[Client Name]';
+  const r = lastResults;
+
+  const prompt = `You are a senior valuation specialist at a Big 4 accounting firm. 
+Write a formal ASC 820 Fair Value Measurement audit working paper memorandum for the following independently valued financial instrument.
+
+Working Paper Reference: ${ref}
+Valuation Date: ${date}
+Client / Entity: ${client}
+Instrument: ${r.instrument}
+Computed Fair Value: ${fmt(r.fv)}
+ASC 820 Level Classification: Level ${r.level}
+${r.pvDebt ? `Debt Component: ${fmt(r.pvDebt)}, Option Component: ${fmt(r.optVal)}` : ''}
+${r.bsVal ? `Black-Scholes unit value: $${r.bsVal.toFixed(4)}, Monte Carlo unit value: $${r.mcFv ? (r.mcFv/r.qty/r.multiplier).toFixed(4) : 'N/A'}, Delta: ${r.delta?.toFixed(4)}` : ''}
+${r.sensBps ? `Rate sensitivity range (bps): ${JSON.stringify(r.sensBps.map(s=>({s:s.label,v:s.val.toFixed(0)})))}` : ''}
+${r.sens ? `Key sensitivity range: ${JSON.stringify(r.sens.map(s=>({s:s.label,v:s.val.toFixed(0)})))}` : ''}
+
+The memo must include these sections:
+1. PURPOSE AND SCOPE
+2. INSTRUMENT DESCRIPTION
+3. VALUATION METHODOLOGY (explain the method used, why it's appropriate, cite relevant ASC 820 guidance)
+4. SIGNIFICANT INPUTS AND ASSUMPTIONS (list each input with source and observability rationale)
+5. FAIR VALUE HIERARCHY CLASSIFICATION (Level ${r.level}, explain the basis under ASC 820-10-35)
+6. SENSITIVITY ANALYSIS SUMMARY (reference the computed sensitivity range)
+7. AUDITOR'S CONCLUSION (state the fair value, whether it falls within an acceptable range, and any recommended disclosures)
+
+Be precise, professional, and reference specific ASC 820 paragraphs where relevant. Do NOT use placeholder brackets — use the actual numbers provided. Format with clear section headings.`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await response.json();
+    const text = data.content?.map(b => b.text || '').join('') || 'Error generating memo.';
+    memoEl.classList.remove('loading');
+    memoEl.textContent = text;
+  } catch(e) {
+    memoEl.classList.remove('loading');
+    memoEl.textContent = 'Error connecting to AI service. Please check your connection and try again.\n\n' + e.message;
+  }
+  btn.disabled = false;
+}
+
+function copyMemo() {
+  const text = document.getElementById('memo-output').textContent;
+  navigator.clipboard.writeText(text).then(() => alert('Memo copied to clipboard.'));
+}
+</script>
+</body>
+</html>
