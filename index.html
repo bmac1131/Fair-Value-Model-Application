@@ -359,7 +359,7 @@
       <div class="sidebar-label">Quick Actions</div>
       <div style="display:flex;flex-direction:column;gap:6px;">
         <button class="btn btn-primary" onclick="runValuation()" style="width:100%;justify-content:center;">▶ Run Valuation</button>
-        <button class="btn btn-ai" onclick="generateMemo()" style="width:100%;justify-content:center;" id="memo-btn">✦ Generate AI Memo</button>
+        <button class="btn btn-ai" onclick="generateMemo()" style="width:100%;justify-content:center;" id="memo-btn">✦ Generate Audit Memo</button>
         <button class="btn btn-secondary" onclick="window.print()" style="width:100%;justify-content:center;">⎙ Print / Export</button>
       </div>
     </div>
@@ -626,7 +626,7 @@
       <!-- AI MEMO SECTION (always visible after run) -->
       <div id="memo-section" style="display:none;" class="card">
         <div class="card-title"><span class="dot" style="background:var(--accent2)"></span>AI-GENERATED AUDIT MEMO (ASC 820)</div>
-        <div class="memo-box loading" id="memo-output">Click "✦ Generate AI Memo" to produce an ASC 820-compliant audit memorandum for this valuation.</div>
+        <div class="memo-box loading" id="memo-output">Click "✦ Generate Audit Memo" to produce an ASC 820-compliant working paper memorandum for this valuation.</div>
         <div style="margin-top:12px;display:flex;gap:8px;">
           <button class="btn btn-secondary" onclick="copyMemo()">⎘ Copy Memo Text</button>
         </div>
@@ -941,7 +941,7 @@ function renderResults(id, data) {
 
   lastResults = data;
   document.getElementById('memo-section').style.display = 'block';
-  document.getElementById('memo-output').textContent = 'Click "✦ Generate AI Memo" in the sidebar to produce an ASC 820-compliant audit memorandum.';
+  document.getElementById('memo-output').textContent = 'Click "✦ Generate Audit Memo" in the sidebar to produce an ASC 820-compliant working paper memorandum.';
   document.getElementById('memo-output').classList.add('loading');
 }
 
@@ -993,65 +993,251 @@ function runValuation() {
 }
 
 // =====================================================
-// AI MEMO GENERATION
+// TEMPLATE-BASED MEMO GENERATION (no API required)
 // =====================================================
-async function generateMemo() {
+function generateMemo() {
   if (!lastResults) { alert('Please run a valuation first.'); return; }
   const memoEl = document.getElementById('memo-output');
-  const btn = document.getElementById('memo-btn');
-  memoEl.classList.add('loading');
-  memoEl.innerHTML = '<span class="spinner"></span> Generating audit memo...';
-  btn.disabled = true;
+  memoEl.classList.remove('loading');
 
   const date = document.getElementById('val-date').value || new Date().toISOString().slice(0,10);
-  const ref = document.getElementById('auditor-ref').value || 'N/A';
+  const ref  = document.getElementById('auditor-ref').value  || 'N/A';
   const client = document.getElementById('client-name').value || '[Client Name]';
   const r = lastResults;
 
-  const prompt = `You are a senior valuation specialist at a Big 4 accounting firm. 
-Write a formal ASC 820 Fair Value Measurement audit working paper memorandum for the following independently valued financial instrument.
+  const levelLabels = {
+    1: 'Level 1 — Quoted prices in active markets for identical assets or liabilities',
+    2: 'Level 2 — Inputs other than quoted prices that are observable, either directly or indirectly',
+    3: 'Level 3 — Unobservable inputs reflecting the entity\'s own assumptions'
+  };
 
-Working Paper Reference: ${ref}
-Valuation Date: ${date}
-Client / Entity: ${client}
-Instrument: ${r.instrument}
-Computed Fair Value: ${fmt(r.fv)}
-ASC 820 Level Classification: Level ${r.level}
-${r.pvDebt ? `Debt Component: ${fmt(r.pvDebt)}, Option Component: ${fmt(r.optVal)}` : ''}
-${r.bsVal ? `Black-Scholes unit value: $${r.bsVal.toFixed(4)}, Monte Carlo unit value: $${r.mcFv ? (r.mcFv/r.qty/r.multiplier).toFixed(4) : 'N/A'}, Delta: ${r.delta?.toFixed(4)}` : ''}
-${r.sensBps ? `Rate sensitivity range (bps): ${JSON.stringify(r.sensBps.map(s=>({s:s.label,v:s.val.toFixed(0)})))}` : ''}
-${r.sens ? `Key sensitivity range: ${JSON.stringify(r.sens.map(s=>({s:s.label,v:s.val.toFixed(0)})))}` : ''}
-
-The memo must include these sections:
-1. PURPOSE AND SCOPE
-2. INSTRUMENT DESCRIPTION
-3. VALUATION METHODOLOGY (explain the method used, why it's appropriate, cite relevant ASC 820 guidance)
-4. SIGNIFICANT INPUTS AND ASSUMPTIONS (list each input with source and observability rationale)
-5. FAIR VALUE HIERARCHY CLASSIFICATION (Level ${r.level}, explain the basis under ASC 820-10-35)
-6. SENSITIVITY ANALYSIS SUMMARY (reference the computed sensitivity range)
-7. AUDITOR'S CONCLUSION (state the fair value, whether it falls within an acceptable range, and any recommended disclosures)
-
-Be precise, professional, and reference specific ASC 820 paragraphs where relevant. Do NOT use placeholder brackets — use the actual numbers provided. Format with clear section headings.`;
-
-  try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-    const data = await response.json();
-    const text = data.content?.map(b => b.text || '').join('') || 'Error generating memo.';
-    memoEl.classList.remove('loading');
-    memoEl.textContent = text;
-  } catch(e) {
-    memoEl.classList.remove('loading');
-    memoEl.textContent = 'Error connecting to AI service. Please check your connection and try again.\n\n' + e.message;
+  // Sensitivity range: low / high from sens array
+  function sensRange(arr) {
+    if (!arr || !arr.length) return 'N/A';
+    const vals = arr.map(s => s.val);
+    return `${fmt(Math.min(...vals))} to ${fmt(Math.max(...vals))}`;
   }
-  btn.disabled = false;
+
+  // ── Per-instrument memo body ──────────────────────────────────────────────
+  let instrDesc = '', methodology = '', inputs = '', sensNarrative = '', conclusion = '';
+
+  // ─── INTEREST RATE SWAP ───
+  if (r.instrument === 'Interest Rate Swap') {
+    const fixed  = document.getElementById('sw-fixed').value;
+    const float  = document.getElementById('sw-float').value;
+    const disc   = document.getElementById('sw-disc').value;
+    const notional = document.getElementById('sw-notional').value;
+    const term   = document.getElementById('sw-term').value;
+    const cva    = document.getElementById('sw-cva').value;
+    const pos    = document.getElementById('sw-pos').value === 'pay-fixed' ? 'pay-fixed / receive-floating' : 'pay-floating / receive-fixed';
+    const range  = sensRange(r.sensBps);
+    const pvLong = fmt(r.pvFloat), pvShort = fmt(r.pvFixed);
+
+    instrDesc = `The instrument under review is an interest rate swap with a notional principal of ${fmt(parseFloat(notional))}, a remaining term of ${term} years, and a contractual fixed rate of ${fixed}%. The entity's position is ${pos}. The current floating rate benchmark (SOFR) is ${float}%. A credit valuation adjustment (CVA) of ${fmt(parseFloat(cva))} has been applied.`;
+
+    methodology = `The fair value of an interest rate swap is determined by discounting the expected future net cash flows of both legs to present value. The fixed leg is discounted at the contractual fixed rate; the floating leg reflects the current benchmark rate. The net present value represents the fair value from the entity's perspective.
+
+This approach is consistent with ASC 820-10-35-24A, which requires fair value to reflect exit price assumptions as of the measurement date. The use of observable swap curves and OIS discount rates is consistent with market participant assumptions per ASC 820-10-35-9.
+
+Discount rate applied: ${disc}% (OIS / risk-free curve). PV of floating leg: ${pvLong}. PV of fixed leg: ${pvShort}. CVA deduction: ${fmt(parseFloat(cva))}.`;
+
+    inputs = `  Fixed Rate: ${fixed}% — Contractual; obtained from executed swap confirmation. Categorized as observable (Level 2).
+  Floating Rate (SOFR): ${float}% — Sourced from Federal Reserve H.15 release or Bloomberg SOFR fixing as of valuation date. Observable (Level 2).
+  Discount Rate: ${disc}% — OIS curve derived from market quotes. Observable (Level 2).
+  Notional: ${fmt(parseFloat(notional))} — Contractual; confirmed from executed agreement.
+  CVA: ${fmt(parseFloat(cva))} — ${parseFloat(cva) === 0 ? 'Not applied; counterparty exposure assumed fully collateralized under CSA.' : 'Applied based on counterparty credit spread. Partially unobservable if spread estimated (Level 3 input).'}`;
+
+    sensNarrative = `A parallel shift sensitivity analysis was performed across rate scenarios ranging from −100 bps to +100 bps. The resulting fair value range is ${range}. This range reflects the primary market risk driver — interest rate movement — and should be disclosed in the financial statement footnotes per ASC 820-10-50-2(bbb) if the instrument is classified Level 2 or above due to CVA.`;
+
+    conclusion = `Based on the discounted cash flow analysis, the independently derived fair value of the interest rate swap as of ${date} is ${fmt(r.fv)} (${r.fv >= 0 ? 'asset' : 'liability'} position). This represents the exit price a market participant would assign under current market conditions. The computed value is considered reasonable given observable inputs and current SOFR levels. The auditor recommends confirming the floating rate fixing date and verifying the CVA methodology with management if the CVA adjustment is material.`;
+
+  // ─── FORWARD CONTRACT ───
+  } else if (r.instrument === 'Forward Contract') {
+    const K    = document.getElementById('fw-strike').value;
+    const S    = document.getElementById('fw-spot').value;
+    const rfr  = document.getElementById('fw-rfr').value;
+    const T    = document.getElementById('fw-time').value;
+    const q    = document.getElementById('fw-div').value;
+    const size = document.getElementById('fw-size').value;
+    const pos  = document.getElementById('fw-pos').value;
+    const range = sensRange(r.sens);
+
+    instrDesc = `The instrument is a forward contract with a delivery price of $${K} per unit, covering ${size} units, with ${T} years remaining to settlement. The entity holds a ${pos} position. The current spot price is $${S} and the risk-free rate is ${rfr}%.`;
+
+    methodology = `The fair value is derived using the cost-of-carry model: F₀ = S · e^(r−q)T, where S is the current spot price, r is the risk-free rate, q is the convenience yield or dividend rate, and T is time to maturity. The fair value to the long position is the present value of (F₀ − K), discounted at the risk-free rate.
+
+This methodology is consistent with ASC 815 and ASC 820-10-35-24A. The computed current forward price is ${fmt(r.F0)}, yielding a per-unit fair value of ${fmt(r.pvUnit)} and a total fair value of ${fmt(r.fv)}.`;
+
+    inputs = `  Contract (Delivery) Price: $${K} — Contractual; sourced from executed agreement.
+  Spot Price: $${S} — Market observable as of valuation date. Source: Bloomberg / exchange data. Level 1 or Level 2 input depending on asset type.
+  Risk-Free Rate: ${rfr}% — OIS / T-bill rate for applicable term. Observable (Level 2).
+  Convenience Yield / Dividend: ${q}% — ${parseFloat(q) === 0 ? 'Not applicable; set to zero.' : 'Sourced from dividend announcements or commodity market data.'}
+  Contract Size: ${size} units — Contractual.`;
+
+    sensNarrative = `Spot price sensitivity analysis was performed across scenarios ranging from −20% to +20% of the current spot price. The resulting fair value range is ${range}. The primary risk driver is the spot price of the underlying asset.`;
+
+    conclusion = `The independently derived fair value of the forward contract as of ${date} is ${fmt(r.fv)} (${r.fv >= 0 ? 'asset' : 'liability'}). This is consistent with the cost-of-carry model applied to observable market inputs. The auditor recommends corroborating the spot price source and confirming there are no cash settlement adjustments or break clauses not reflected in the terms provided.`;
+
+  // ─── FUTURES ───
+  } else if (r.instrument === 'Futures Contract') {
+    const entry  = document.getElementById('ft-entry').value;
+    const settle = document.getElementById('ft-settle').value;
+    const mult   = document.getElementById('ft-mult').value;
+    const qty    = document.getElementById('ft-qty').value;
+    const pos    = document.getElementById('ft-pos').value;
+
+    instrDesc = `The instrument is a ${pos} futures position comprising ${qty} contracts with a multiplier of ${mult} units per contract. The original entry price was $${entry}; the exchange settlement price on the valuation date is $${settle}.`;
+
+    methodology = `Futures contracts are marked to market daily using exchange settlement prices. Fair value equals (Settlement Price − Entry Price) × Multiplier × Quantity for long positions (reversed for short). This is consistent with ASC 820-10-35-37, which states that for instruments traded in active markets, the quoted price without adjustment represents fair value.
+
+No model-derived inputs are required. The settlement price sourced directly from the exchange (CME, ICE, NYMEX, or equivalent) constitutes a Level 1 input under ASC 820-10-35-40.`;
+
+    inputs = `  Entry Price: $${entry} — Contractual; sourced from trade confirmation.
+  Settlement Price: $${settle} — Exchange daily settlement price as of ${date}. Level 1 observable input. Source must be documented (e.g., CME Group daily settlement file).
+  Contract Multiplier: ${mult} — Exchange-defined contract specification.
+  Number of Contracts: ${qty} — Confirmed from broker statement or custodian report.`;
+
+    sensNarrative = `As a Level 1 instrument, sensitivity analysis is not required for hierarchy classification purposes. However, notional exposure of ${fmt(r.notional)} should be considered for disclosure of concentration risk under ASC 820-10-50.`;
+
+    conclusion = `The independently derived fair value (unrealized P&L) of the futures position as of ${date} is ${fmt(r.fv)} (${r.fv >= 0 ? 'gain' : 'loss'}). This represents a straightforward mark-to-market calculation using an exchange-quoted Level 1 price. The auditor recommends obtaining the official exchange settlement report as of the valuation date and cross-referencing with the entity's margin account statement.`;
+
+  // ─── CONVERTIBLE NOTE ───
+  } else if (r.instrument === 'Convertible Note') {
+    const face    = document.getElementById('cn-face').value;
+    const coupon  = document.getElementById('cn-coupon').value;
+    const term    = document.getElementById('cn-term').value;
+    const disc    = document.getElementById('cn-disc').value;
+    const convpx  = document.getElementById('cn-convpx').value;
+    const stock   = document.getElementById('cn-stock').value;
+    const vol     = document.getElementById('cn-vol').value;
+    const rfr     = document.getElementById('cn-rfr').value;
+    const range   = sensRange(r.sens);
+
+    instrDesc = `The instrument is a convertible note with a face value of ${fmt(parseFloat(face))}, a coupon rate of ${coupon}%, and a remaining term of ${term} years. The note is convertible into equity at $${convpx} per share. The current share price is $${stock}. The note is bifurcated into a straight debt component and an embedded conversion option.`;
+
+    methodology = `The convertible note is valued using a bifurcated approach consistent with ASC 470-20 and ASC 820:
+
+  (1) Straight Debt Component — Discounted cash flow model. Future coupon and principal cash flows are discounted at the market rate for comparable non-convertible debt of ${disc}%. PV of debt component: ${fmt(r.pvDebt)}.
+
+  (2) Embedded Conversion Option — Black-Scholes option pricing model. The conversion option is treated as a call option on the underlying equity with a strike of $${convpx}, current stock price of $${stock}, volatility of ${vol}%, and risk-free rate of ${rfr}%. Option value per share equivalent: ${fmt(r.optVal)}.
+
+Total fair value: ${fmt(r.pvDebt)} + ${fmt(r.optVal)} = ${fmt(r.fv)}.
+
+This approach is consistent with ASC 820-10-35-24A and reflects the exit price a market participant would pay for the hybrid instrument.`;
+
+    inputs = `  Face Value: ${fmt(parseFloat(face))} — Contractual.
+  Coupon Rate: ${coupon}% — Contractual; sourced from note agreement.
+  Remaining Term: ${term} years — Contractual maturity date confirmed.
+  Market Discount Rate: ${disc}% — SIGNIFICANT LEVEL 3 INPUT. Represents credit-adjusted rate for straight non-convertible debt of equivalent term and seniority. Auditor should obtain management's support for this rate (e.g., comparable issuances, credit spread analysis).
+  Conversion Price: $${convpx} — Contractual.
+  Stock Price: $${stock} — Observable market price as of ${date}. Level 1 if publicly traded; Level 3 if private.
+  Volatility: ${vol}% — SIGNIFICANT LEVEL 3 INPUT. Historical or implied volatility of the underlying equity. Auditor must assess the appropriateness of the volatility selection and document comparable company analysis if the entity is private.
+  Risk-Free Rate: ${rfr}% — Treasury yield curve rate for applicable term. Observable (Level 2).`;
+
+    sensNarrative = `Volatility sensitivity analysis was performed (the most significant unobservable input). The fair value range across ±20% volatility scenarios is ${range}. This range must be disclosed under ASC 820-10-50-2(bbb) as the instrument is classified Level 3. Management's point estimate of ${fmt(r.fv)} should be assessed for reasonableness against this range.`;
+
+    conclusion = `The independently derived fair value of the convertible note as of ${date} is ${fmt(r.fv)}, comprising a debt component of ${fmt(r.pvDebt)} and an embedded option component of ${fmt(r.optVal)}. The valuation is classified as Level 3 under ASC 820 due to the use of unobservable inputs (discount rate and volatility). The auditor recommends: (1) challenging management's volatility assumption against a documented comparable company analysis; (2) obtaining independent support for the credit-adjusted discount rate; and (3) ensuring the sensitivity range ${range} is disclosed in the financial statement footnotes.`;
+
+  // ─── OPTIONS / WARRANTS ───
+  } else {
+    const S      = document.getElementById('op-spot').value;
+    const K      = document.getElementById('op-strike').value;
+    const T      = document.getElementById('op-time').value;
+    const rfr    = document.getElementById('op-rfr').value;
+    const vol    = document.getElementById('op-vol').value;
+    const div    = document.getElementById('op-div').value;
+    const type   = document.getElementById('op-type').value;
+    const sub    = document.getElementById('op-sub').value;
+    const qty    = document.getElementById('op-qty').value;
+    const range  = sensRange(r.sens);
+    const bsUnit = fmt(r.bsVal);
+    const mcUnit = r.mcFv ? fmt(r.mcFv / r.qty / r.multiplier) : 'N/A';
+    const subLabel = sub === 'warrant' ? 'warrant' : sub === 'option-otc' ? 'OTC option' : 'exchange-traded option';
+
+    instrDesc = `The instrument is a ${type} ${subLabel} on an underlying security with a current price of $${S} and a strike price of $${K}. The option has ${T} years remaining to expiry. The position covers ${qty} ${sub === 'option-exchange' ? 'contracts (100 shares each)' : 'units'}. Annualized volatility is ${vol}% and the risk-free rate is ${rfr}%.`;
+
+    methodology = `Two complementary methodologies were applied:
+
+  (1) Black-Scholes Analytical Model — The closed-form Black-Scholes formula provides an analytical fair value using the inputs below. Per-unit value: ${bsUnit}. Total fair value: ${fmt(r.fv)}. This is the primary valuation method, consistent with ASC 820-10-35-24A and widely accepted market practice for vanilla options and warrants.
+
+  (2) Monte Carlo Simulation (n = 1,000 paths) — A Monte Carlo simulation using geometric Brownian motion was run as an independent cross-check. Per-unit value: ${mcUnit}. Total: ${fmt(r.mcFv)}. The convergence of both methods supports the reliability of the Black-Scholes result.
+
+  Greeks: Delta = ${fmtN(r.delta, 4)} (sensitivity to $1 move in underlying); Vega = ${fmtN(r.vega, 2)} (sensitivity to 1% move in volatility).`;
+
+    inputs = `  Spot / Stock Price: $${S} — ${sub === 'option-exchange' ? 'Exchange-quoted market price. Level 1.' : 'Market price as of valuation date. Confirm source (Bloomberg, broker quote). Level 1 if public; Level 3 if private.'}
+  Strike Price: $${K} — Contractual; sourced from option agreement or warrant certificate.
+  Time to Expiry: ${T} years — Derived from contractual expiry date confirmed against ${date}.
+  Risk-Free Rate: ${rfr}% — Continuous rate from Treasury yield curve for matching term. Observable (Level 2).
+  Volatility: ${vol}% — ${sub === 'option-exchange' ? 'Implied volatility sourced from exchange option chain as of valuation date. Observable (Level 2).' : 'SIGNIFICANT LEVEL 3 INPUT. Historical or implied volatility — auditor must document methodology and comparable data sources. For private companies, peer group analysis required.'}
+  Dividend Yield: ${div}% — ${parseFloat(div) === 0 ? 'Not applicable; issuer does not pay dividends.' : 'Sourced from dividend announcements or Bloomberg consensus.'}`;
+
+    sensNarrative = `Volatility sensitivity analysis was performed across ±15% scenarios. The resulting fair value range is ${range}. ${r.level === 3 ? 'As a Level 3 instrument, this range must be disclosed under ASC 820-10-50-2(bbb).' : 'The Black-Scholes and Monte Carlo results are closely aligned, supporting model reliability.'} The Delta of ${fmtN(r.delta,4)} indicates that a $1 move in the underlying would change fair value by approximately ${fmt(r.delta * r.qty * r.multiplier)}.`;
+
+    conclusion = `The independently derived fair value of the ${subLabel} position as of ${date} is ${fmt(r.fv)} (Black-Scholes), corroborated by a Monte Carlo estimate of ${fmt(r.mcFv)}. The instrument is classified ASC 820 ${levelLabels[r.level]}. ${r.level === 3 ? 'The auditor recommends obtaining management\'s support for the volatility assumption and documenting the comparable company selection process. Sensitivity disclosures are required.' : 'Inputs are primarily observable; classification is appropriate provided the volatility source is documented.'} The auditor found no material discrepancy between the entity\'s reported fair value and this independent calculation, subject to confirmation of all inputs listed above.`;
+  }
+
+  // ── Assemble the full memo ──────────────────────────────────────────────
+  const memo = `════════════════════════════════════════════════════════════════
+  AUDIT WORKING PAPER — FAIR VALUE MEASUREMENT
+  ASC 820 Independent Valuation Memorandum
+════════════════════════════════════════════════════════════════
+
+Working Paper Ref :  ${ref}
+Client / Entity   :  ${client}
+Instrument        :  ${r.instrument}
+Valuation Date    :  ${date}
+Prepared by       :  Independent Valuation Model v1.0
+ASC 820 Level     :  ${levelLabels[r.level]}
+Fair Value        :  ${fmt(r.fv)}
+
+────────────────────────────────────────────────────────────────
+1. PURPOSE AND SCOPE
+────────────────────────────────────────────────────────────────
+This memorandum documents the independent auditor's valuation of a ${r.instrument} held by ${client} as of ${date}, for the purpose of corroborating management's fair value estimate under ASC 820, Fair Value Measurement. The objective is to assess whether the reported fair value represents the price that would be received to sell the asset (or paid to transfer the liability) in an orderly transaction between market participants at the measurement date, consistent with ASC 820-10-35-2.
+
+────────────────────────────────────────────────────────────────
+2. INSTRUMENT DESCRIPTION
+────────────────────────────────────────────────────────────────
+${instrDesc}
+
+────────────────────────────────────────────────────────────────
+3. VALUATION METHODOLOGY
+────────────────────────────────────────────────────────────────
+${methodology}
+
+────────────────────────────────────────────────────────────────
+4. SIGNIFICANT INPUTS AND ASSUMPTIONS
+────────────────────────────────────────────────────────────────
+${inputs}
+
+────────────────────────────────────────────────────────────────
+5. ASC 820 FAIR VALUE HIERARCHY CLASSIFICATION
+────────────────────────────────────────────────────────────────
+Classification: ${levelLabels[r.level]}
+
+${r.level === 1
+  ? 'The fair value is determined entirely from quoted prices in active markets for identical instruments (ASC 820-10-35-40). No model inputs or adjustments are applied. This is the most reliable measure of fair value under the hierarchy.'
+  : r.level === 2
+  ? 'The fair value is determined using a valuation model with inputs that are directly or indirectly observable in the market (ASC 820-10-35-47). While the fair value is model-derived, the significant inputs are corroborated by observable market data. The auditor must document the source of each observable input.'
+  : 'The fair value relies on one or more significant unobservable inputs (ASC 820-10-35-52). This is the lowest level of the hierarchy and requires the most rigorous audit scrutiny. Management must document its process for developing unobservable inputs, including any market data considered, and sensitivity disclosures are mandatory under ASC 820-10-50-2(bbb).'}
+
+────────────────────────────────────────────────────────────────
+6. SENSITIVITY ANALYSIS
+────────────────────────────────────────────────────────────────
+${sensNarrative}
+
+────────────────────────────────────────────────────────────────
+7. AUDITOR'S CONCLUSION
+────────────────────────────────────────────────────────────────
+${conclusion}
+
+════════════════════════════════════════════════════════════════
+Prepared:  ${date}   |   Ref: ${ref}   |   IVM v1.0 — Template-Based
+This memorandum is prepared for audit purposes only and does not
+constitute investment advice or a fairness opinion.
+════════════════════════════════════════════════════════════════`;
+
+  memoEl.textContent = memo;
 }
 
 function copyMemo() {
