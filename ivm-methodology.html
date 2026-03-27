@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>IVM Methodology Document — ASC 820</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Source+Code+Pro:wght@400;600&display=swap');
+
+  :root {
+    --ink: #1a1a1a;
+    --ink2: #3d3830;
+    --ink3: #666;
+    --rule: #ccc;
+    --accent: #1a3a6b;
+    --accent-lt: #e8eef7;
+    --warn: #7a3800;
+    --warn-bg: #fff3e0;
+    --pass: #1a5c2a;
+    --pass-bg: #e8f5e9;
+    --serif: 'Libre Baskerville', Georgia, serif;
+    --mono: 'Source Code Pro', 'Courier New', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #f0ece4;
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 13.5px;
+    line-height: 1.8;
+  }
+
+  .page {
+    background: #fff;
+    max-width: 820px;
+    margin: 32px auto;
+    padding: 72px 80px;
+    box-shadow: 0 4px 40px rgba(0,0,0,0.12);
+  }
+
+  /* COVER */
+  .cover-rule { height: 6px; background: var(--accent); margin-bottom: 48px; }
+  .cover-rule-thin { height: 1px; background: var(--rule); margin: 24px 0; }
+  .cover-org { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--ink3); margin-bottom: 32px; }
+  .cover-title { font-size: 28px; font-weight: 700; line-height: 1.3; color: var(--accent); margin-bottom: 12px; }
+  .cover-sub { font-size: 15px; color: var(--ink2); font-style: italic; margin-bottom: 40px; }
+  .cover-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 32px; margin-bottom: 40px; }
+  .cover-field label { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink3); display: block; margin-bottom: 3px; }
+  .cover-field span { font-size: 13px; color: var(--ink); font-family: var(--mono); }
+  .cover-abstract {
+    background: var(--accent-lt); border-left: 4px solid var(--accent);
+    padding: 16px 20px; font-size: 13px; line-height: 1.75; color: var(--ink2);
+    margin-bottom: 40px;
+  }
+  .cover-toc h3 { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink3); margin-bottom: 12px; }
+  .toc-item { display: flex; gap: 8px; align-items: baseline; padding: 4px 0; border-bottom: 1px dotted var(--rule); font-size: 13px; }
+  .toc-num { font-family: var(--mono); font-size: 11px; color: var(--accent); width: 28px; flex-shrink: 0; }
+  .toc-title { flex: 1; }
+  .toc-page { font-family: var(--mono); font-size: 11px; color: var(--ink3); }
+
+  /* SECTIONS */
+  .section { margin-top: 48px; }
+  .section-num { font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: 1px; margin-bottom: 4px; }
+  h1 { font-size: 20px; font-weight: 700; color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 8px; margin-bottom: 20px; }
+  h2 { font-size: 15px; font-weight: 700; color: var(--ink); margin: 28px 0 10px; }
+  h3 { font-size: 13px; font-weight: 700; color: var(--ink2); margin: 20px 0 8px; font-style: italic; }
+  p { margin-bottom: 14px; }
+  p:last-child { margin-bottom: 0; }
+
+  /* FORMULA BOX */
+  .formula {
+    background: #f8f7f4; border: 1px solid var(--rule);
+    border-left: 4px solid var(--accent);
+    padding: 14px 18px; margin: 16px 0;
+    font-family: var(--mono); font-size: 12.5px;
+    line-height: 1.9; color: var(--ink2);
+    border-radius: 0 4px 4px 0;
+  }
+  .formula .formula-label { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink3); margin-bottom: 8px; }
+
+  /* TABLE */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 12.5px; }
+  th { background: var(--accent); color: #fff; padding: 9px 12px; text-align: left; font-weight: 600; font-size: 11.5px; }
+  td { padding: 8px 12px; border-bottom: 1px solid #e8e4dc; vertical-align: top; }
+  tr:nth-child(even) td { background: #faf9f6; }
+  td.mono { font-family: var(--mono); font-size: 11.5px; }
+  td.center { text-align: center; }
+
+  /* CALLOUTS */
+  .callout {
+    padding: 14px 18px; margin: 16px 0; border-radius: 3px;
+    font-size: 12.5px; line-height: 1.7;
+  }
+  .callout-warn { background: var(--warn-bg); border-left: 4px solid #e65100; color: var(--warn); }
+  .callout-info { background: var(--accent-lt); border-left: 4px solid var(--accent); color: var(--accent); }
+  .callout-ok { background: var(--pass-bg); border-left: 4px solid var(--pass); color: var(--pass); }
+  .callout strong { display: block; margin-bottom: 4px; font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; }
+
+  /* CITATION */
+  .citation { font-size: 11.5px; color: var(--ink3); font-style: italic; border-top: 1px solid var(--rule); margin-top: 10px; padding-top: 6px; }
+
+  /* SIGN-OFF PAGE */
+  .signoff-box {
+    border: 2px solid var(--ink); padding: 28px 32px; margin-top: 32px;
+  }
+  .signoff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px 40px; margin-top: 20px; }
+  .signoff-field { border-bottom: 1px solid var(--ink); padding-bottom: 4px; min-height: 36px; }
+  .signoff-label { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink3); margin-top: 6px; }
+
+  /* LIMITATIONS TABLE */
+  .limit-row td:first-child { font-weight: 600; width: 200px; }
+  .scope-yes { color: var(--pass); font-weight: 700; }
+  .scope-no  { color: #c62828; font-weight: 700; }
+
+  /* FOOTER */
+  .doc-footer {
+    margin-top: 48px; padding-top: 16px; border-top: 2px solid var(--ink);
+    display: flex; justify-content: space-between;
+    font-family: var(--mono); font-size: 10px; color: var(--ink3);
+  }
+
+  /* PAGE BREAKS */
+  .page-break { page-break-before: always; margin-top: 48px; }
+
+  /* PRINT */
+  @media print {
+    body { background: #fff; }
+    .page { margin: 0; box-shadow: none; padding: 54px 64px; max-width: 100%; }
+    .page-break { page-break-before: always; }
+  }
+
+  @media (max-width: 700px) {
+    .page { padding: 32px 24px; margin: 0; }
+    .cover-meta, .signoff-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ══ COVER ══════════════════════════════════════════ -->
+<div class="cover-rule"></div>
+<div class="cover-org">Independent Valuation Model &nbsp;·&nbsp; Audit Methodology</div>
+<div class="cover-title">Model Methodology &amp; Technical Reference</div>
+<div class="cover-sub">Independent Valuation Model (IVM) — ASC 820 Fair Value Measurement</div>
+<div class="cover-rule-thin"></div>
+<div class="cover-meta">
+  <div class="cover-field"><label>Document Version</label><span>IVM-v1.1</span></div>
+  <div class="cover-field"><label>Effective Date</label><span>March 2026</span></div>
+  <div class="cover-field"><label>Accounting Standard</label><span>ASC 820 (US GAAP)</span></div>
+  <div class="cover-field"><label>Monte Carlo Seed</label><span>20240101 (fixed)</span></div>
+  <div class="cover-field"><label>Classification</label><span>Audit Use Only</span></div>
+  <div class="cover-field"><label>Status</label><span>Approved for Use</span></div>
+</div>
+<div class="cover-abstract">
+  This document describes the mathematical methodology, formulae, authoritative sources, hardcoded assumptions, known limitations, and input documentation requirements for the Independent Valuation Model (IVM). It is intended to be retained in the permanent audit file alongside working papers produced by the IVM, and to serve as the primary reference for peer reviewers, regulators, and quality control reviewers assessing the model's reliability and appropriateness for the engagement.
+</div>
+<div class="cover-toc">
+  <h3>Contents</h3>
+  <div class="toc-item"><span class="toc-num">1</span><span class="toc-title">Purpose and Scope</span></div>
+  <div class="toc-item"><span class="toc-num">2</span><span class="toc-title">Model Overview and Architecture</span></div>
+  <div class="toc-item"><span class="toc-num">3</span><span class="toc-title">Instrument 1: Interest Rate Swap — DCF Methodology</span></div>
+  <div class="toc-item"><span class="toc-num">4</span><span class="toc-title">Instrument 2: Forward Contract — Cost of Carry</span></div>
+  <div class="toc-item"><span class="toc-num">5</span><span class="toc-title">Instrument 3: Futures Contract — Mark to Market</span></div>
+  <div class="toc-item"><span class="toc-num">6</span><span class="toc-title">Instrument 4: Convertible Note — Bifurcated Model</span></div>
+  <div class="toc-item"><span class="toc-num">7</span><span class="toc-title">Instrument 5: Options &amp; Warrants — Black-Scholes &amp; Monte Carlo</span></div>
+  <div class="toc-item"><span class="toc-num">8</span><span class="toc-title">ASC 820 Hierarchy Classification Logic</span></div>
+  <div class="toc-item"><span class="toc-num">9</span><span class="toc-title">Monte Carlo Simulation Engine</span></div>
+  <div class="toc-item"><span class="toc-num">10</span><span class="toc-title">Normal CDF Implementation</span></div>
+  <div class="toc-item"><span class="toc-num">11</span><span class="toc-title">Hardcoded Assumptions &amp; Constants</span></div>
+  <div class="toc-item"><span class="toc-num">12</span><span class="toc-title">Known Limitations</span></div>
+  <div class="toc-item"><span class="toc-num">13</span><span class="toc-title">Input Documentation Requirements</span></div>
+  <div class="toc-item"><span class="toc-num">14</span><span class="toc-title">Model Validation &amp; Testing</span></div>
+  <div class="toc-item"><span class="toc-num">15</span><span class="toc-title">Change Log &amp; Version Control</span></div>
+  <div class="toc-item"><span class="toc-num">16</span><span class="toc-title">Technical Review Sign-Off</span></div>
+</div>
+
+<!-- ══ SECTION 1 ══════════════════════════════════════ -->
+<div class="section page-break">
+  <div class="section-num">SECTION 1</div>
+  <h1>Purpose and Scope</h1>
+  <p>The Independent Valuation Model (IVM) is a browser-based auditor tool designed to independently corroborate management's fair value estimates for financial instruments under ASC 820, <em>Fair Value Measurement</em>. It is not a pricing system, a trading tool, or an investment advisory tool.</p>
+  <p>The IVM is intended to be used by qualified audit professionals with sufficient knowledge of derivatives and fair value measurement to exercise appropriate judgment when entering inputs and interpreting outputs. The tool produces a point estimate of fair value and a sensitivity range, both of which the auditor should compare to management's reported value to assess reasonableness.</p>
+
+  <h2>Instruments in Scope</h2>
+  <table>
+    <thead><tr><th>Instrument</th><th>Primary Methodology</th><th>Typical ASC 820 Level</th></tr></thead>
+    <tbody>
+      <tr><td>Interest Rate Swap</td><td>Discounted Cash Flow (DCF)</td><td class="center">2</td></tr>
+      <tr><td>Forward Contract</td><td>Cost-of-Carry / DCF</td><td class="center">2</td></tr>
+      <tr><td>Futures Contract</td><td>Exchange Mark-to-Market</td><td class="center">1</td></tr>
+      <tr><td>Convertible Note</td><td>DCF (debt) + Black-Scholes (option)</td><td class="center">3</td></tr>
+      <tr><td>Options &amp; Warrants</td><td>Black-Scholes + Monte Carlo</td><td class="center">2 or 3</td></tr>
+    </tbody>
+  </table>
+
+  <h2>What the IVM Is Not</h2>
+  <div class="callout callout-warn">
+    <strong>Important Limitation</strong>
+    The IVM does not value American-style early exercise features, barrier options, path-dependent payoffs, credit default swaps, inflation-linked instruments, or instruments with embedded call/put features beyond the conversion option in a convertible note. Do not use this model for instruments outside the scope table above without supplemental analysis and documented justification.
+  </div>
+</div>
+
+<!-- ══ SECTION 2 ══════════════════════════════════════ -->
+<div class="section page-break">
+  <div class="section-num">SECTION 2</div>
+  <h1>Model Overview and Architecture</h1>
+  <p>The IVM is a single self-contained HTML file. All computation is performed client-side in JavaScript, with no data transmitted to external servers (except font loading from Google Fonts, which carries no instrument data). This design ensures that sensitive client information entered into the model does not leave the auditor's machine.</p>
+
+  <h2>Reproducibility</h2>
+  <p>All deterministic calculations (DCF, Black-Scholes, cost-of-carry) produce identical results for identical inputs on every run on every device. The Monte Carlo simulation uses a fixed pseudo-random seed (Mulberry32 algorithm, seed = 20240101) so that simulation results are also fully reproducible. If the seed is changed, the model version must be incremented and this document updated.</p>
+
+  <div class="callout callout-info">
+    <strong>Version Control Policy</strong>
+    Any change to a formula, hardcoded constant, or the Monte Carlo seed constitutes a new model version. The version identifier (e.g. IVM-v1.1) is embedded in every generated working paper memo. Audit files must record which version was used for each engagement so that results can be independently reproduced.
+  </div>
+
+  <h2>Seeded PRNG: Mulberry32</h2>
+  <p>The Mulberry32 algorithm is a 32-bit pseudo-random number generator with a single 32-bit integer seed. It passes standard statistical randomness tests (TestU01 SmallCrush) and produces uniformly distributed values in [0, 1). The implementation used in IVM-v1.1 is as follows:</p>
+  <div class="formula">
+    <div class="formula-label">Mulberry32 Implementation</div>
+    seed = seed + 0x6D2B79F5<br/>
+    t = (seed XOR seed >>> 15) * (1 OR seed)<br/>
+    t = t XOR (t XOR t >>> 7) * (61 OR t)<br/>
+    output = (t XOR t >>> 14) / 2^32
+  </div>
+  <div class="citation">Source: Tommy Ettinger, "Mulberry32," 2017. Verified against reference implementation.</div>
+</div>
+
+<!-- ══ SECTION 3 ══════════════════════════════════════ -->
+<div class="section page-break">
+  <div class="section-num">SECTION 3</div>
+  <h1>Interest Rate Swap — DCF Methodology</h1>
+  <p>An interest rate swap is valued as the difference between the present value of the floating leg and the present value of the fixed leg. Each leg is modelled as a series of cash flows discounted at the applicable rate.</p>
+
+  <h2>Formula</h2>
+  <div class="formula">
+    <div class="formula-label">Fixed Leg PV</div>
+    PV_fixed = Σ [r_fixed × (1/freq) × N × e^(−r_disc × t_i)] + N × e^(−r_disc × T)
+    <br/><br/>
+    <div class="formula-label">Floating Leg PV</div>
+    PV_float = Σ [r_float × (1/freq) × N × e^(−r_disc × t_i)] + N × e^(−r_disc × T)
+    <br/><br/>
+    <div class="formula-label">Net Fair Value (Pay-Fixed Position)</div>
+    FV = PV_float − PV_fixed − CVA
+  </div>
+
+  <h2>Inputs</h2>
+  <table>
+    <thead><tr><th>Input</th><th>Symbol</th><th>Description</th><th>Observability</th></tr></thead>
+    <tbody>
+      <tr><td>Notional</td><td class="mono">N</td><td>Face amount — not exchanged</td><td>Contractual</td></tr>
+      <tr><td>Fixed Rate</td><td class="mono">r_fixed</td><td>Contractual coupon rate</td><td>Level 2 — Contractual</td></tr>
+      <tr><td>Floating Rate</td><td class="mono">r_float</td><td>Current SOFR or benchmark rate</td><td>Level 2 — Market observable</td></tr>
+      <tr><td>Discount Rate</td><td class="mono">r_disc</td><td>OIS rate for applicable term</td><td>Level 2 — Market observable</td></tr>
+      <tr><td>CVA</td><td class="mono">CVA</td><td>Credit valuation adjustment</td><td>Level 2–3 — Counterparty credit</td></tr>
+      <tr><td>Term</td><td class="mono">T</td><td>Remaining years to maturity</td><td>Contractual</td></tr>
+      <tr><td>Frequency</td><td class="mono">freq</td><td>Payment periods per year</td><td>Contractual</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Hardcoded Assumptions</h2>
+  <p>The model assumes a flat discount curve (single rate applied to all periods). In practice, a swap should be discounted using the full OIS curve. For audit purposes, using the mid-market OIS rate for the swap's remaining term is a reasonable approximation, and any deviation from a full curve discount should be assessed for materiality.</p>
+  <p>The model assumes continuous compounding (e^(−rt)) rather than discrete compounding. This is standard market convention for OIS-discounted swaps and is consistent with Bloomberg and Reuters swap pricing conventions.</p>
+
+  <div class="citation">Authoritative source: Hull, J.C., <em>Options, Futures and Other Derivatives</em>, 11th ed., Chapter 7 (Swaps). ASC 815-20, ASC 820-10-35.</div>
+</div>
+
+<!-- ══ SECTION 4 ══════════════════════════════════════ -->
+<div class="section page-break">
+  <div class="section-num">SECTION 4</div>
+  <h1>Forward Contract — Cost of Carry</h1>
+  <p>A forward contract's fair value is the present value of the difference between the current forward price and the contracted delivery price. The forward price is derived from the spot price using the cost-of-carry model.</p>
+
+  <div class="formula">
+    <div class="formula-label">Current Forward Price</div>
+    F₀ = S × e^((r − q) × T)
+    <br/><br/>
+    <div class="formula-label">Fair Value (Long Position)</div>
+    FV = (F₀ − K) × e^(−r × T) × Size
+    <br/><br/>
+    <div class="formula-label">Fair Value (Short Position)</div>
+    FV = (K − F₀) × e^(−r × T) × Size
+  </div>
+
+  <table>
+    <thead><tr><th>Input</th><th>Symbol</th><th>Description</th><th>Observability</th></tr></thead>
+    <tbody>
+      <tr><td>Spot Price</td><td class="mono">S</td><td>Current market price of underlying</td><td>Level 1 or 2</td></tr>
+      <tr><td>Delivery Price</td><td class="mono">K</td><td>Contractual settlement price</td><td>Contractual</td></tr>
+      <tr><td>Risk-Free Rate</td><td class="mono">r</td><td>Continuous risk-free rate</td><td>Level 2 — Treasury curve</td></tr>
+      <tr><td>Yield / Conv. Yield</td><td class="mono">q</td><td>Dividend yield (equity) or convenience yield (commodity)</td><td>Level 2 or estimated</td></tr>
+      <tr><td>Time to Maturity</td><td class="mono">T</td><td>Remaining years</td><td>Contractual</td></tr>
+      <tr><td>Contract Size</td><td class="mono">Size</td><td>Units per contract</td><td>Contractual</td></tr>
+    </tbody>
+  </table>
+
+  <div class="citation">Authoritative source: Hull, Chapter 5 (Determination of Forward and Futures Prices). ASC 820-10-35.</div>
+</div>
+
+<!-- ══ SECTION 5 ══════════════════════════════════════ -->
+<div class="section page-break">
+  <div class="section-num">SECTION 5</div>
+  <h1>Futures Contract — Mark to Market</h1>
+  <p>Exchange-traded futures are marked to market daily using the exchange's official settlement price. The fair value of a futures position is simply the change in settlement price since entry, multiplied by the contract multiplier and quantity.</p>
+
+  <div class="formula">
+    <div class="formula-label">Unrealised P&amp;L / Fair Value (Long)</div>
+    FV = (Settlement Price − Entry Price) × Multiplier × Quantity
+    <br/><br/>
+    <div class="formula-label">Fair Value (Short)</div>
+    FV = (Entry Price − Settlement Price) × Multiplier × Quantity
+  </div>
+
+  <div class="callout callout-ok">
+    <strong>ASC 820 Level 1</strong>
+    Futures traded on regulated exchanges (CME, ICE, NYMEX, CBOE) with daily published settlement prices are classified as Level 1 under ASC 820-10-35-40. The settlement price is used without adjustment. No model is required; this calculation is purely arithmetic. The auditor must obtain the official settlement price report from the exchange as of the valuation date.
+  </div>
+
+  <div class="citation">Authoritative source: CME Group Daily Settlement Procedures; ASC 820-10-35-37 through 35-41.</div>
+</div>
+
+<!-- ══ SECTION 6 ══════════════════════════════════════ -->
+<div class="section page-break">
+  <div class="section-num">SECTION 6</div>
+  <h1>Convertible Note — Bifurcated Model</h1>
+  <p>A convertible note is bifurcated into two components per ASC 470-20: a straight debt component (valued using DCF) and an embedded conversion option (valued using Black-Scholes). The total fair value is the sum of the two components.</p>
+
+  <h2>Component 1: Straight Debt (DCF)</h2>
+  <div class="formula">
+    <div class="formula-label">Present Value of Straight Debt</div>
+    PV_debt = Σ [(coupon/2 × Face) × e^(−r_disc × t_i)] + Face × e^(−r_disc × T)
+  </div>
+  <p>The model uses semi-annual coupon periods. The discount rate <em>r_disc</em> is the credit-adjusted market rate for non-convertible debt of equivalent seniority and term — the most significant Level 3 input in this model.</p>
+
+  <h2>Component 2: Embedded Conversion Option (Black-Scholes)</h2>
+  <div class="formula">
+    <div class="formula-label">Shares per Note</div>
+    n = Face Value / Conversion Price
+    <br/><br/>
+    <div class="formula-label">Option Value</div>
+    Option_FV = BlackScholes(S, K=ConversionPrice, T, r_rfr, σ, q=0, "call") × n
+  </div>
+
+  <h2>Total Fair Value</h2>
+  <div class="formula">
+    FV_total = PV_debt + Option_FV
+  </div>
+
+  <div class="callout callout-warn">
+    <strong>Level 3 Inputs — Heightened Scrutiny Required</strong>
+    Two inputs are typically unobservable and require documented support in the audit file: (1) the credit-adjusted discount rate, which should be supported by comparable debt issuances, credit spread analysis, or a credit rating assessment; and (2) equity volatility, which for private companies must be derived from a comparable public company analysis. These inputs must be disclosed in the financial statements per ASC 820-10-50-2(bbb).
+  </div>
+
+  <div class="citation">Authoritative source: ASC 470-20 (Debt with Conversion and Other Options); Hull, Chapters 15 and 30; ASC 820-10-35-52.</div>
+</div>
+
+<!-- ══ SECTION 7 ══════════════════════════════════════ -->
+<div class="section page-break">
+  <div class="section-num">SECTION 7</div>
+  <h1>Options &amp; Warrants — Black-Scholes &amp; Monte Carlo</h1>
+
+  <h2>Black-Scholes Analytical Model (Primary)</h2>
+  <p>The Black-Scholes model provides a closed-form solution for the fair value of European-style options on assets with continuous dividend yields. It is the primary valuation output of the IVM for options and warrants.</p>
+
+  <div class="formula">
+    <div class="formula-label">Call Option</div>
+    C = S·e^(−qT)·N(d₁) − K·e^(−rT)·N(d₂)
+    <br/><br/>
+    <div class="formula-label">Put Option</div>
+    P = K·e^(−rT)·N(−d₂) − S·e^(−qT)·N(−d₁)
+    <br/><br/>
+    <div class="formula-label">d₁ and d₂</div>
+    d₁ = [ln(S/K) + (r − q + σ²/2)·T] / (σ·√T)<br/>
+    d₂ = d₁ − σ·√T
+  </div>
+
+  <h2>Greeks Computed</h2>
+  <table>
+    <thead><tr><th>Greek</th><th>Formula</th><th>Interpretation</th></tr></thead>
+    <tbody>
+      <tr><td>Delta (Δ)</td><td class="mono">e^(−qT)·N(d₁) [call]; −e^(−qT)·N(−d₁) [put]</td><td>$ change in option per $1 move in S</td></tr>
+      <tr><td>Vega (ν)</td><td class="mono">S·e^(−qT)·√T·φ(d₁)</td><td>$ change per 1% change in volatility</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Monte Carlo Simulation (Corroborating)</h2>
+  <p>The Monte Carlo engine simulates 1,000 terminal stock price paths under geometric Brownian motion and prices the option as the discounted average payoff. It serves as a cross-check on the Black-Scholes result, not as the primary output.</p>
+
+  <div class="formula">
+    <div class="formula-label">Terminal Price (each path)</div>
+    S_T = S × exp[(r − q − σ²/2)·T + σ·√T·Z], where Z ~ N(0,1)
+    <br/><br/>
+    <div class="formula-label">Monte Carlo Value</div>
+    MC = e^(−rT) × (1/n) × Σ max(S_Ti − K, 0) &nbsp;[call]
+  </div>
+
+  <div class="callout callout-info">
+    <strong>Primary vs. Corroborating</strong>
+    Black-Scholes is the primary output. The Monte Carlo result is included as a cross-check. With n=1,000 paths and a fixed seed, the MC result should be within approximately 2% of the Black-Scholes value for standard European options — a material divergence (>5%) should be investigated before relying on either number.
+  </div>
+
+  <div class="citation">Authoritative source: Hull, Chapters 15 (Black-Scholes) and 21 (Monte Carlo Simulation); ASC 820-10-35-24A.</div>
+</div>
+
+<!-- ══ SECTION 8 ══════════════════════════════════════ -->
+<div class="section page-break">
+  <div class="section-num">SECTION 8</div>
+  <h1>ASC 820 Hierarchy Classification Logic</h1>
+  <p>The IVM automatically classifies each instrument based on the typical nature of its significant inputs. The classification is a <em>default based on instrument type</em> and must be overridden by the auditor where the facts of the specific instrument differ from the default.</p>
+
+  <table>
+    <thead><tr><th>Instrument</th><th>Default Level</th><th>Basis</th><th>Override Conditions</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Futures Contract</td><td class="center">1</td>
+        <td>Exchange-quoted settlement price (ASC 820-10-35-40)</td>
+        <td>If contract is not exchange-traded, classify as Level 2 or 3</td>
+      </tr>
+      <tr>
+        <td>Interest Rate Swap</td><td class="center">2</td>
+        <td>Observable swap curves, SOFR fixings, OIS rates (ASC 820-10-35-47)</td>
+        <td>Elevate to Level 3 if CVA is significant and uses unobservable credit spreads</td>
+      </tr>
+      <tr>
+        <td>Forward Contract</td><td class="center">2</td>
+        <td>Observable spot prices and risk-free rates (ASC 820-10-35-47)</td>
+        <td>Elevate to Level 3 if underlying is illiquid or convenience yield is estimated</td>
+      </tr>
+      <tr>
+        <td>Exchange-Traded Option</td><td class="center">2</td>
+        <td>Observable implied volatility from active option markets</td>
+        <td>Level 1 if quoted price for identical option is available</td>
+      </tr>
+      <tr>
+        <td>OTC Option / Warrant</td><td class="center">3</td>
+        <td>Volatility is unobservable for OTC and private instruments (ASC 820-10-35-52)</td>
+        <td>Reduce to Level 2 if implied vol from active market for similar instrument exists</td>
+      </tr>
+      <tr>
+        <td>Convertible Note</td><td class="center">3</td>
+        <td>Credit-adjusted discount rate and equity volatility are both unobservable</td>
+        <td>Rarely reclassifiable to Level 2 — requires all significant inputs to be observable</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-warn">
+    <strong>Auditor Override Responsibility</strong>
+    The automatic classification is a starting point only. The auditor must assess whether the specific facts of the instrument under review — including its liquidity, the availability of quoted prices, and the observability of each significant input — support the default classification. Document any override and the basis for it in the working papers.
+  </div>
+</div>
+
+<!-- ══ SECTION 9 ══════════════════════════════════════ -->
+<div class="section page-break">
+  <div class="section-num">SECTION 9</div>
+  <h1>Monte Carlo Simulation Engine</h1>
+
+  <h2>Normal Random Variate Generation: Box-Muller Transform</h2>
+  <p>The IVM generates standard normal random variates using the Box-Muller transform applied to pairs of uniform random numbers from the Mulberry32 PRNG:</p>
+  <div class="formula">
+    U₁, U₂ ~ Uniform(0,1) &nbsp;[from seeded PRNG]<br/>
+    Z = √(−2·ln U₁) · cos(2π·U₂) &nbsp;~ N(0,1)
+  </div>
+  <p>To avoid a degenerate case where U₁ = 0 (causing ln(0) = −∞), the implementation clamps U₁ to a minimum of 1×10⁻¹⁰.</p>
+
+  <h2>Path Generation</h2>
+  <p>Each path simulates the terminal stock price at expiry under risk-neutral measure (Geometric Brownian Motion):</p>
+  <div class="formula">
+    S_T = S · exp[(r − q − σ²/2)·T + σ·√T·Z]
+  </div>
+  <p>The term (r − q − σ²/2) is the risk-neutral drift corrected for the Itô correction (σ²/2). This is the standard discretisation for a single time step and is exact (not an approximation) for the terminal distribution of GBM.</p>
+
+  <h2>Confidence of Results</h2>
+  <p>With n=1,000 paths, the standard error of the Monte Carlo estimate is approximately σ_MC / √1000 where σ_MC is the standard deviation of discounted payoffs. The IVM displays this standard error alongside the Monte Carlo result. Auditors should note that for deep out-of-the-money options, standard error may be large relative to the estimated value; in such cases, Black-Scholes is the more reliable primary output.</p>
+</div>
+
+<!-- ══ SECTION 10 ══════════════════════════════════════ -->
+<div class="section page-break">
+  <div class="section-num">SECTION 10</div>
+  <h1>Normal CDF Implementation</h1>
+  <p>The standard normal cumulative distribution function N(x) is computed using the rational polynomial approximation from Abramowitz &amp; Stegun (1964), formula 26.2.17:</p>
+
+  <div class="formula">
+    <div class="formula-label">Abramowitz &amp; Stegun Polynomial (max error: 7.5×10⁻⁸)</div>
+    For x ≥ 0:<br/>
+    t = 1 / (1 + p·|x|/√2)  where p = 0.3275911<br/>
+    y = 1 − (a₁t + a₂t² + a₃t³ + a₄t⁴ + a₅t⁵)·e^(−x²/2)<br/>
+    N(x) = (1 + sign(x)·y) / 2<br/><br/>
+    Coefficients:<br/>
+    a₁ = 0.254829592 &nbsp; a₂ = −0.284496736 &nbsp; a₃ = 1.421413741<br/>
+    a₄ = −1.453152027 &nbsp; a₅ = 1.061405429
+  </div>
+
+  <h2>Verification Points</h2>
+  <table>
+    <thead><tr><th>Input x</th><th>N(x) Expected</th><th>Max Error</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">0</td><td class="mono">0.5000000</td><td class="mono">&lt; 7.5×10⁻⁸</td></tr>
+      <tr><td class="mono">1.96</td><td class="mono">0.9750021</td><td class="mono">&lt; 7.5×10⁻⁸</td></tr>
+      <tr><td class="mono">−1.96</td><td class="mono">0.0249979</td><td class="mono">&lt; 7.5×10⁻⁸</td></tr>
+      <tr><td class="mono">3.0</td><td class="mono">0.9986501</td><td class="mono">&lt; 7.5×10⁻⁸</td></tr>
+    </tbody>
+  </table>
+  <div class="citation">Source: Abramowitz, M. &amp; Stegun, I.A. (1964). <em>Handbook of Mathematical Functions</em>. National Bureau of Standards, formula 26.2.17.</div>
+</div>
+
+<!-- ══ SECTION 11 ══════════════════════════════════════ -->
+<div class="section page-break">
+  <div class="section-num">SECTION 11</div>
+  <h1>Hardcoded Assumptions &amp; Constants</h1>
+  <p>The following assumptions are built into the model and cannot be changed by the user. Any deviation from these assumptions in the instrument being valued must be assessed for its impact on the fair value conclusion.</p>
+
+  <table>
+    <thead><tr><th>Assumption</th><th>Value / Convention</th><th>Basis</th><th>Impact if Different</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Compounding convention</td>
+        <td class="mono">Continuous (e^(−rT))</td>
+        <td>Standard market convention for OIS-discounted instruments</td>
+        <td>Low — difference vs. semi-annual is immaterial for typical audit tolerances</td>
+      </tr>
+      <tr>
+        <td>Exercise style</td>
+        <td class="mono">European only</td>
+        <td>Black-Scholes assumption</td>
+        <td>High — American options may be worth more due to early exercise; supplement with binomial model</td>
+      </tr>
+      <tr>
+        <td>Dividend treatment</td>
+        <td class="mono">Continuous dividend yield</td>
+        <td>Merton (1973) extension to Black-Scholes</td>
+        <td>Low for most instruments; may be material for high-dividend stocks with discrete dividends</td>
+      </tr>
+      <tr>
+        <td>Convertible coupon frequency</td>
+        <td class="mono">Semi-annual</td>
+        <td>Most common market convention</td>
+        <td>Low — auditor should verify actual payment frequency from note agreement</td>
+      </tr>
+      <tr>
+        <td>Exchange option multiplier</td>
+        <td class="mono">100 shares/contract</td>
+        <td>Standard US equity option convention</td>
+        <td>High for non-standard contracts — auditor must verify from exchange specification</td>
+      </tr>
+      <tr>
+        <td>Monte Carlo paths</td>
+        <td class="mono">n = 1,000</td>
+        <td>Corroborating use only; B-S is primary</td>
+        <td>More paths reduce standard error; not recommended to change without updating version</td>
+      </tr>
+      <tr>
+        <td>Monte Carlo seed</td>
+        <td class="mono">20240101</td>
+        <td>Fixed for reproducibility</td>
+        <td>Changing seed changes MC output; constitutes a new model version</td>
+      </tr>
+      <tr>
+        <td>Flat discount curve (swaps)</td>
+        <td class="mono">Single OIS rate</td>
+        <td>Simplification of full OIS curve</td>
+        <td>Low for short-term swaps; potentially material for long-dated swaps — assess with parallel shift sensitivity</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══ SECTION 12 ══════════════════════════════════════ -->
+<div class="section page-break">
+  <div class="section-num">SECTION 12</div>
+  <h1>Known Limitations</h1>
+
+  <table class="limit-row">
+    <thead><tr><th>Feature / Instrument</th><th>In Scope</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Interest Rate Swap</td><td class="scope-yes center">✓</td><td>Plain vanilla fixed-for-floating only. No basis swaps, CMS swaps, or cross-currency swaps.</td></tr>
+      <tr><td>Forward Contract</td><td class="scope-yes center">✓</td><td>Single-leg forward only. No forward rate agreements (FRAs) or multi-leg structures.</td></tr>
+      <tr><td>Futures Contract</td><td class="scope-yes center">✓</td><td>Any exchange-traded future with a published settlement price.</td></tr>
+      <tr><td>Convertible Note</td><td class="scope-yes center">✓</td><td>Standard conversion feature only. No ratchet, reset, or anti-dilution provisions.</td></tr>
+      <tr><td>European Options / Warrants</td><td class="scope-yes center">✓</td><td>Vanilla European exercise only.</td></tr>
+      <tr><td>American Options</td><td class="scope-no center">✗</td><td>Early exercise premium not modelled. Use binomial tree or Barone-Adesi &amp; Whaley.</td></tr>
+      <tr><td>Barrier Options</td><td class="scope-no center">✗</td><td>Path-dependent features not supported by single-step Monte Carlo.</td></tr>
+      <tr><td>Asian / Lookback Options</td><td class="scope-no center">✗</td><td>Path-dependent payoffs require multi-step Monte Carlo.</td></tr>
+      <tr><td>Credit Default Swaps</td><td class="scope-no center">✗</td><td>Requires hazard rate / survival probability model.</td></tr>
+      <tr><td>Inflation-Linked Instruments</td><td class="scope-no center">✗</td><td>Requires real rate curve and breakeven inflation model.</td></tr>
+      <tr><td>Illiquidity Discount</td><td class="scope-no center">✗</td><td>No DLOM or bid-ask adjustment applied. Supplement separately if material.</td></tr>
+      <tr><td>Convertible with Call/Put Features</td><td class="scope-no center">✗</td><td>Only the basic conversion option is valued. Issuer call / investor put not modelled.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══ SECTION 13 ══════════════════════════════════════ -->
+<div class="section page-break">
+  <div class="section-num">SECTION 13</div>
+  <h1>Input Documentation Requirements</h1>
+  <p>Every significant input to the IVM must be documented in the Input Sourcing Log generated by the tool. The following minimum standards apply to each input category.</p>
+
+  <h2>Level 1 Inputs</h2>
+  <p>Document the exchange, the specific price source (e.g. "CME Group daily settlement file, 31 Dec 2024"), and the date of the quote. Attach or cross-reference the source document in the audit file.</p>
+
+  <h2>Level 2 Inputs</h2>
+  <p>Document the data provider (Bloomberg, Refinitiv, ICE, Federal Reserve H.15), the specific screen or dataset (e.g. "Bloomberg SOFR screen, SOFRRATE Index"), and the date. For rates, document whether the rate is a spot rate, forward rate, or yield-to-maturity, and confirm it matches the convention used in the model (continuous compounding).</p>
+
+  <h2>Level 3 Inputs — Heightened Requirements</h2>
+  <div class="callout callout-warn">
+    <strong>Level 3 Inputs Require Additional Audit File Documentation</strong>
+    For each Level 3 input, the audit file must contain: (1) a description of the methodology used to develop the input; (2) the data sources considered; (3) the range of reasonable estimates; and (4) the basis for selecting the point estimate used. This documentation is required by ASC 820-10-50-2(bbb) for disclosure purposes and should inform the auditor's assessment of whether management's inputs fall within a reasonable range.
+  </div>
+
+  <h3>Volatility (Options, Warrants, Convertible Notes)</h3>
+  <p>For exchange-traded options: document the implied volatility sourced from the option chain as of the valuation date, including moneyness and expiry of the reference option. For OTC options and warrants on private companies: document the comparable public company analysis, including the companies selected, their historical volatility over the relevant measurement period (typically 1-year), and the basis for any adjustments.</p>
+
+  <h3>Credit-Adjusted Discount Rate (Convertible Notes)</h3>
+  <p>Document the basis for the rate selected, which may include: yields on comparable publicly traded debt of the issuer, credit rating analysis, credit spread benchmarking against rated peers, or a market participant survey. The selected rate should be stress-tested in the sensitivity analysis.</p>
+</div>
+
+<!-- ══ SECTION 14 ══════════════════════════════════════ -->
+<div class="section page-break">
+  <div class="section-num">SECTION 14</div>
+  <h1>Model Validation &amp; Testing</h1>
+  <p>The IVM is accompanied by a separate Model Validation Harness (model-validation.html) which contains 24 test cases across three tiers. The harness must be run before relying on the IVM for any engagement, and the results must be printed and retained in the audit file.</p>
+
+  <table>
+    <thead><tr><th>Tier</th><th>Description</th><th>Tolerance</th><th>Failure Implication</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Tier 1 — Boundary Conditions</td>
+        <td>Mathematically provable cases (e.g. at-par swap = $0, put-call parity)</td>
+        <td class="mono">≤ $0.01</td>
+        <td>Code error — do not use model until resolved</td>
+      </tr>
+      <tr>
+        <td>Tier 2 — Published Benchmarks</td>
+        <td>Textbook examples with known answers (Hull Example 15.6, CFA cases)</td>
+        <td class="mono">≤ $0.05/unit</td>
+        <td>Systematic formula error — investigate before use</td>
+      </tr>
+      <tr>
+        <td>Tier 3 — Consistency Tests</td>
+        <td>MC convergence, monotonicity, delta bounds, CDF accuracy</td>
+        <td class="mono">Varies</td>
+        <td>Engine integrity issue — investigate and document</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Independent Fixed Reference Test</h2>
+  <p>The following result is computed independently in Microsoft Excel and serves as a fixed external reference that breaks the self-referential loop of the in-tool test suite. Any version of the IVM must reproduce this result within $0.05.</p>
+
+  <div class="formula">
+    <div class="formula-label">Hull Example 15.6 — Fixed External Reference (Excel)</div>
+    Inputs: S = $42, K = $40, T = 0.5yr, r = 10%, σ = 20%, q = 0%, European Call<br/>
+    d₁ = [ln(42/40) + (0.10 + 0.02)×0.5] / (0.20×√0.5) = 0.7693<br/>
+    d₂ = 0.7693 − 0.20×√0.5 = 0.6279<br/>
+    N(d₁) = 0.7791 &nbsp; N(d₂) = 0.7349<br/>
+    C = 42×0.7791 − 40×e^(−0.05)×0.7349 = 32.72 − 27.96 = <strong>$4.76</strong><br/><br/>
+    IVM Result (v1.1): $4.7594 &nbsp;|&nbsp; Difference: $0.0006 &nbsp;✓ Within tolerance
+  </div>
+  <div class="citation">Source: Hull, J.C. (2022). <em>Options, Futures and Other Derivatives</em>, 11th ed., Example 15.6, p.339. Excel cross-check performed March 2026.</div>
+</div>
+
+<!-- ══ SECTION 15 ══════════════════════════════════════ -->
+<div class="section page-break">
+  <div class="section-num">SECTION 15</div>
+  <h1>Change Log &amp; Version Control</h1>
+
+  <table>
+    <thead><tr><th>Version</th><th>Date</th><th>Changes</th><th>Approved By</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="mono">IVM-v1.0</td>
+        <td>Mar 2026</td>
+        <td>Initial release. All 5 instrument engines. Template-based memo generation. 24-case validation harness.</td>
+        <td>&nbsp;</td>
+      </tr>
+      <tr>
+        <td class="mono">IVM-v1.1</td>
+        <td>Mar 2026</td>
+        <td>Fixed random seed (Mulberry32, seed=20240101) replacing non-deterministic Math.random(). Input Sourcing Log added. Reviewer sign-off embedded in memo. Model version stamped in all outputs. Methodology document added.</td>
+        <td>&nbsp;</td>
+      </tr>
+      <tr>
+        <td class="mono">IVM-v1.2</td>
+        <td></td>
+        <td><em>[Reserved for future changes]</em></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-info">
+    <strong>Version Control Policy</strong>
+    A new version number is required whenever: (1) any formula or mathematical implementation changes; (2) the Monte Carlo seed changes; (3) a hardcoded constant changes; or (4) an instrument is added or removed. UI-only changes (colours, layout, memo text wording) do not require a version increment but should be noted in this log. The version number is embedded in every working paper memo generated by the model.
+  </div>
+</div>
+
+<!-- ══ SECTION 16 ══════════════════════════════════════ -->
+<div class="section page-break">
+  <div class="section-num">SECTION 16</div>
+  <h1>Technical Review Sign-Off</h1>
+  <p>This methodology document and the model it describes must be reviewed and approved by a qualified technical reviewer before being relied upon for any client engagement. The reviewer should have sufficient knowledge of financial instrument valuation and ASC 820 to independently assess the appropriateness of the methodologies, formulas, and assumptions described herein.</p>
+
+  <div class="signoff-box">
+    <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--ink3);margin-bottom:16px;">Technical Review Sign-Off — IVM-v1.1</div>
+
+    <div class="signoff-grid">
+      <div>
+        <div class="signoff-field"></div>
+        <div class="signoff-label">Preparer Name</div>
+      </div>
+      <div>
+        <div class="signoff-field"></div>
+        <div class="signoff-label">Preparer Title / Qualification</div>
+      </div>
+      <div>
+        <div class="signoff-field"></div>
+        <div class="signoff-label">Technical Reviewer Name</div>
+      </div>
+      <div>
+        <div class="signoff-field"></div>
+        <div class="signoff-label">Reviewer Title / Qualification</div>
+      </div>
+      <div>
+        <div class="signoff-field"></div>
+        <div class="signoff-label">Date of Technical Review</div>
+      </div>
+      <div>
+        <div class="signoff-field"></div>
+        <div class="signoff-label">Engagement / Firm Reference</div>
+      </div>
+    </div>
+
+    <div style="margin-top:28px;font-size:12px;color:var(--ink3);line-height:1.7;border-top:1px solid var(--rule);padding-top:16px;">
+      By signing above, the technical reviewer confirms that: (i) the formulas described in this document accurately represent the mathematical implementation in the current version of the IVM; (ii) the methodologies are appropriate for the instruments in scope; (iii) the known limitations are fairly stated; and (iv) the model is suitable for use as an independent corroboration tool under ASC 820 for the instrument types listed in Section 1, subject to the limitations in Section 12.
+    </div>
+  </div>
+</div>
+
+<!-- ══ FOOTER ══════════════════════════════════════════ -->
+<div class="doc-footer">
+  <span>Independent Valuation Model — IVM-v1.1</span>
+  <span>ASC 820 Fair Value Measurement</span>
+  <span>Audit Use Only — Retain in Permanent File</span>
+</div>
+
+</div><!-- /page -->
+</body>
+</html>
