@@ -277,12 +277,77 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* PRINT / EXPORT */
+  /* INPUT SOURCING LOG */
+  .sourcing-log { margin-bottom: 16px; }
+  .sourcing-row {
+    display: grid; grid-template-columns: 180px 1fr 160px 120px;
+    gap: 8px; align-items: center;
+    padding: 7px 0; border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .sourcing-row:last-child { border-bottom: none; }
+  .sourcing-row-header {
+    display: grid; grid-template-columns: 180px 1fr 160px 120px;
+    gap: 8px; padding: 6px 0 8px;
+    border-bottom: 2px solid var(--border);
+    font-family: var(--mono); font-size: 10px; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;
+  }
+  .sourcing-param { color: var(--text2); font-weight: 500; }
+  .sourcing-input {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 5px; padding: 5px 9px; color: var(--text);
+    font-family: var(--mono); font-size: 11px; width: 100%; outline: none;
+  }
+  .sourcing-input:focus { border-color: var(--accent); }
+  .sourcing-input::placeholder { color: var(--text3); }
+  .sourcing-level {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 5px; padding: 5px 9px; color: var(--text);
+    font-family: var(--mono); font-size: 11px; width: 100%;
+    outline: none; cursor: pointer; -webkit-appearance: none;
+  }
+  .sourcing-level:focus { border-color: var(--accent); }
+  .required-tag {
+    font-family: var(--mono); font-size: 9px; color: var(--red);
+    background: rgba(239,68,68,0.1); border-radius: 3px;
+    padding: 1px 5px; margin-left: 4px;
+  }
+  .sign-off-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 12px; }
+  .sign-off-note {
+    font-size: 11px; color: var(--text3); font-style: italic;
+    margin-top: 10px; padding: 8px 12px;
+    background: rgba(234,179,8,0.05); border: 1px solid rgba(234,179,8,0.2);
+    border-radius: 5px;
+  }
+
+  /* VARIANCE PANEL */
+  .variance-row {
+    display: grid; grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 12px; margin-bottom: 16px;
+  }
+  .variance-card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px;
+  }
+  .variance-card.pass-card { border-color: rgba(34,197,94,0.4); background: rgba(34,197,94,0.05); }
+  .variance-card.fail-card { border-color: rgba(239,68,68,0.4); background: rgba(239,68,68,0.05); }
+  .variance-card.warn-card { border-color: rgba(234,179,8,0.4); background: rgba(234,179,8,0.05); }
+
+  /* IMPLIED VOL SOLVER */
+  .iv-output {
+    font-family: var(--mono); font-size: 28px; font-weight: 600;
+    color: var(--accent); margin: 8px 0 4px;
+  }
+  .iv-iter { font-size: 11px; color: var(--text3); font-family: var(--mono); }
+
+  /* PRINT */
   @media print {
     .sidebar, .btn-row, .header { display: none; }
     .layout { grid-template-columns: 1fr; }
     body { background: #fff; color: #000; }
     .card { border: 1px solid #ccc; background: #fff; }
+    .sourcing-input, .sourcing-level { background: #fff; color: #000; border-color: #ccc; }
   }
 
   /* SCROLLBAR */
@@ -329,6 +394,10 @@
           <span class="icon">→</span> Forward Contract
           <span class="method-tag">DCF</span>
         </button>
+        <button class="instrument-btn" onclick="switchInstrument('fxfwd')">
+          <span class="icon">¥€</span> FX Forward
+          <span class="method-tag">CIP</span>
+        </button>
         <button class="instrument-btn" onclick="switchInstrument('future')">
           <span class="icon">◈</span> Futures Contract
           <span class="method-tag">MKT</span>
@@ -353,6 +422,13 @@
       <div class="sidebar-label">Auditor Reference</div>
       <input type="text" id="auditor-ref" placeholder="e.g. WP-FV-2024-001" style="width:100%;margin-bottom:8px;" />
       <input type="text" id="client-name" placeholder="Client / Entity name" style="width:100%;" />
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Management's Reported Value</div>
+      <input type="number" id="mgmt-value" placeholder="Management FV ($)" style="width:100%;margin-bottom:8px;" />
+      <input type="number" id="mat-threshold" placeholder="Materiality threshold ($)" style="width:100%;" />
+      <div style="font-size:10px;color:var(--text3);margin-top:5px;line-height:1.5;">Enter management's reported fair value to auto-compute variance. Threshold flags pass/fail.</div>
     </div>
 
     <div class="sidebar-section">
@@ -623,10 +699,180 @@
         <div id="results-option" style="display:none;"></div>
       </div>
 
-      <!-- AI MEMO SECTION (always visible after run) -->
+      <!-- ====== FX FORWARD ====== -->
+      <div class="instrument-panel" id="panel-fxfwd">
+        <div class="section-header">
+          <div class="section-title">¥€ FX Forward Valuation</div>
+          <div class="section-desc">Covered Interest Rate Parity (CIP) — F = S · e^(r_d − r_f)·T. Typically ASC 820 Level 2.</div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>FX Contract Terms</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Spot Rate (domestic per foreign) <span class="tooltip-icon" data-tip="Current spot exchange rate quoted as units of domestic currency per 1 unit of foreign currency. E.g. for USD/EUR, enter USD per 1 EUR.">?</span></label>
+              <input type="number" id="fx-spot" value="1.0850" step="0.0001" />
+            </div>
+            <div class="form-group">
+              <label>Contracted Forward Rate <span class="tooltip-icon" data-tip="The exchange rate locked into the forward contract. Compared to the fair forward rate to determine FV.">?</span></label>
+              <input type="number" id="fx-strike" value="1.0700" step="0.0001" />
+            </div>
+            <div class="form-group">
+              <label>Domestic Risk-Free Rate (%) <span class="tooltip-icon" data-tip="Risk-free rate for the domestic (reporting) currency — e.g. USD OIS rate. Source from Fed H.15 or OIS curve.">?</span></label>
+              <input type="number" id="fx-rd" value="5.25" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label>Foreign Risk-Free Rate (%) <span class="tooltip-icon" data-tip="Risk-free rate for the foreign currency — e.g. ECB rate for EUR. Source from relevant central bank or Bloomberg.">?</span></label>
+              <input type="number" id="fx-rf" value="3.75" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label>Time to Maturity (years) <span class="tooltip-icon" data-tip="Remaining time until the FX forward settles.">?</span></label>
+              <input type="number" id="fx-time" value="0.5" step="0.05" />
+            </div>
+            <div class="form-group">
+              <label>Notional (foreign currency units) <span class="tooltip-icon" data-tip="The amount of foreign currency to be bought or sold at maturity. E.g. 1,000,000 EUR.">?</span></label>
+              <input type="number" id="fx-notional" value="1000000" />
+            </div>
+            <div class="form-group">
+              <label>Currency Pair Label <span class="tooltip-icon" data-tip="For display and memo purposes only. E.g. USD/EUR, GBP/USD.">?</span></label>
+              <input type="text" id="fx-pair" value="USD/EUR" style="font-family:var(--mono);" />
+            </div>
+            <div class="form-group">
+              <label>Position <span class="tooltip-icon" data-tip="Buy foreign = entity will purchase foreign currency at the contracted rate (benefits if foreign currency appreciates). Sell foreign = entity will sell foreign currency.">?</span></label>
+              <select id="fx-pos">
+                <option value="buy">Buy Foreign Currency</option>
+                <option value="sell">Sell Foreign Currency</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Implied Vol Solver — placed on FX forward panel as bonus tool -->
+        <div class="card">
+          <div class="card-title"><span class="dot" style="background:var(--accent2)"></span>IMPLIED VOLATILITY SOLVER (Options &amp; Warrants)</div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6;">
+            Enter a market-observed option price and back-solve for the implied volatility using Newton-Raphson iteration. Use this to validate a volatility assumption or derive implied vol from a quoted price.
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Observed Market Price ($) <span class="tooltip-icon" data-tip="The quoted price of the option (mid-market). Source from exchange, Bloomberg OVDV, or broker quote.">?</span></label>
+              <input type="number" id="iv-mktprice" value="5.50" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label>Spot / Stock Price ($) <span class="tooltip-icon" data-tip="Current price of the underlying on the valuation date.">?</span></label>
+              <input type="number" id="iv-spot" value="50" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label>Strike Price ($)</label>
+              <input type="number" id="iv-strike" value="52" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label>Time to Expiry (years)</label>
+              <input type="number" id="iv-time" value="1" step="0.05" />
+            </div>
+            <div class="form-group">
+              <label>Risk-Free Rate (%)</label>
+              <input type="number" id="iv-rfr" value="5.0" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label>Dividend Yield (%)</label>
+              <input type="number" id="iv-div" value="0" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label>Option Type</label>
+              <select id="iv-type">
+                <option value="call">Call</option>
+                <option value="put">Put</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-top:14px;">
+            <button class="btn btn-secondary" onclick="solveImpliedVol()" style="margin-bottom:12px;">⟳ Solve Implied Volatility</button>
+            <div id="iv-result" style="display:none;">
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+                <div class="result-card">
+                  <div class="result-label">IMPLIED VOLATILITY</div>
+                  <div class="iv-output" id="iv-vol-out">—</div>
+                  <div class="iv-iter" id="iv-iter-out"></div>
+                </div>
+                <div class="result-card">
+                  <div class="result-label">MODEL PRICE AT IMPLIED VOL</div>
+                  <div class="result-value" id="iv-price-out" style="font-size:18px;">—</div>
+                  <div class="result-sub" id="iv-err-out"></div>
+                </div>
+                <div class="result-card">
+                  <div class="result-label">VEGA AT IMPLIED VOL</div>
+                  <div class="result-value" id="iv-vega-out" style="font-size:18px;">—</div>
+                  <div class="result-sub">Per 1% vol move</div>
+                </div>
+              </div>
+              <div id="iv-warn" style="display:none;margin-top:10px;padding:10px 14px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:6px;font-size:12px;color:var(--red);"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="results-fxfwd" style="display:none;"></div>
+      </div>
+
+      <!-- MANAGEMENT VARIANCE PANEL (shown after run) -->
+      <div id="variance-section" style="display:none;" class="card">
+        <div class="card-title"><span class="dot" style="background:var(--green)"></span>MANAGEMENT VARIANCE ANALYSIS</div>
+        <div id="variance-content"></div>
+      </div>
+
+      <!-- INPUT SOURCING LOG (shown after run) -->
+      <div id="sourcing-section" style="display:none;" class="card">
+        <div class="card-title"><span class="dot" style="background:var(--yellow)"></span>INPUT SOURCING LOG — ASC 820 DOCUMENTATION <span class="required-tag">REQUIRED</span></div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6;">
+          Document the source of each significant input before generating the audit memo. This log is embedded in the working paper and forms the basis of the Level classification rationale. All Level 3 inputs require additional support in the audit file.
+        </div>
+
+        <div class="sourcing-row-header">
+          <div>Input / Assumption</div>
+          <div>Source (data provider, date, screen)</div>
+          <div>Observability</div>
+          <div>Input Level</div>
+        </div>
+        <div class="sourcing-log" id="sourcing-rows">
+          <!-- Populated dynamically by buildSourcingLog() -->
+        </div>
+
+        <hr class="divider" />
+        <div class="card-title" style="margin-bottom:12px;"><span class="dot" style="background:var(--accent2)"></span>REVIEWER SIGN-OFF</div>
+        <div class="sign-off-grid">
+          <div class="form-group">
+            <label>Preparer Name <span class="required-tag">REQUIRED</span></label>
+            <input type="text" id="so-preparer" placeholder="Full name" class="sourcing-input" />
+          </div>
+          <div class="form-group">
+            <label>Preparer Role / Qualification</label>
+            <input type="text" id="so-role" placeholder="e.g. Senior Manager, CPA" class="sourcing-input" />
+          </div>
+          <div class="form-group">
+            <label>Review Date</label>
+            <input type="date" id="so-date" class="sourcing-input" />
+          </div>
+          <div class="form-group">
+            <label>Independent Reviewer</label>
+            <input type="text" id="so-reviewer" placeholder="Reviewer name (if applicable)" class="sourcing-input" />
+          </div>
+          <div class="form-group">
+            <label>Model Version</label>
+            <input type="text" id="so-version" readonly class="sourcing-input" style="color:var(--text3);" />
+          </div>
+          <div class="form-group">
+            <label>MC Seed (reproducibility)</label>
+            <input type="text" id="so-seed" readonly class="sourcing-input" style="color:var(--text3);" />
+          </div>
+        </div>
+        <div class="sign-off-note">
+          ⚠ By completing this log and generating the memo, the preparer confirms that all inputs have been independently sourced from the data providers listed above, and that the fair value conclusion reflects their professional judgment as of the valuation date. This log must be retained in the permanent audit file.
+        </div>
+      </div>
+
+      <!-- AUDIT MEMO SECTION -->
       <div id="memo-section" style="display:none;" class="card">
-        <div class="card-title"><span class="dot" style="background:var(--accent2)"></span>AI-GENERATED AUDIT MEMO (ASC 820)</div>
-        <div class="memo-box loading" id="memo-output">Click "✦ Generate Audit Memo" to produce an ASC 820-compliant working paper memorandum for this valuation.</div>
+        <div class="card-title"><span class="dot" style="background:var(--accent2)"></span>AUDIT WORKING PAPER MEMORANDUM (ASC 820)</div>
+        <div class="memo-box loading" id="memo-output">Complete the Input Sourcing Log above, then click "✦ Generate Audit Memo" to produce the working paper memorandum.</div>
         <div style="margin-top:12px;display:flex;gap:8px;">
           <button class="btn btn-secondary" onclick="copyMemo()">⎘ Copy Memo Text</button>
         </div>
@@ -637,6 +883,23 @@
 </div>
 
 <script>
+// =====================================================
+// VERSION & REPRODUCIBILITY
+// =====================================================
+const MODEL_VERSION = 'IVM-v1.2';
+const MC_SEED = 20240101; // Fixed seed — DO NOT CHANGE without updating version
+
+// Seeded pseudo-random number generator (Mulberry32)
+// Produces identical sequences for identical seeds — fully reproducible
+function makeRNG(seed) {
+  return function() {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
 // =====================================================
 // STATE
 // =====================================================
@@ -657,6 +920,8 @@ function switchInstrument(name) {
   document.getElementById('panel-' + name).classList.add('active');
   event.currentTarget.classList.add('active');
   document.getElementById('memo-section').style.display = 'none';
+  document.getElementById('variance-section').style.display = 'none';
+  document.getElementById('sourcing-section').style.display = 'none';
 }
 
 // =====================================================
@@ -692,10 +957,12 @@ function bsVega(S, K, T, r, sigma, q) {
 }
 
 function monteCarlo(S, K, T, r, sigma, q, type, n=1000) {
+  // Uses fixed seed MC_SEED — results are identical on every run for audit reproducibility
+  const rng = makeRNG(MC_SEED);
   let sum = 0, sum2 = 0;
   const paths = [];
   for (let i = 0; i < n; i++) {
-    const u1 = Math.random(), u2 = Math.random();
+    const u1 = Math.max(1e-10, rng()), u2 = rng(); // Box-Muller transform
     const z = Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2);
     const ST = S * Math.exp((r - q - 0.5*sigma*sigma)*T + sigma*Math.sqrt(T)*z);
     const payoff = type === 'call' ? Math.max(ST-K,0) : Math.max(K-ST,0);
@@ -705,7 +972,7 @@ function monteCarlo(S, K, T, r, sigma, q, type, n=1000) {
   }
   const mean = sum/n;
   const stdErr = Math.sqrt((sum2/n - mean*mean)/n);
-  return {mean, stdErr, paths: paths.sort((a,b)=>a-b)};
+  return {mean, stdErr, paths: paths.sort((a,b)=>a-b), seed: MC_SEED};
 }
 
 function fmt(n, decimals=0) {
@@ -848,9 +1115,146 @@ function valueOption() {
   return {fv, mcFv, bsVal, delta, vega, mc, qty, multiplier, level, sens, instrument: sub==='warrant'?'Warrant':'Stock Option'};
 }
 
-// =====================================================
-// RENDER RESULTS
-// =====================================================
+function valueFXForward() {
+  const S    = parseFloat(document.getElementById('fx-spot').value);
+  const K    = parseFloat(document.getElementById('fx-strike').value);
+  const rd   = parseFloat(document.getElementById('fx-rd').value)/100;
+  const rf   = parseFloat(document.getElementById('fx-rf').value)/100;
+  const T    = parseFloat(document.getElementById('fx-time').value);
+  const N    = parseFloat(document.getElementById('fx-notional').value);
+  const pos  = document.getElementById('fx-pos').value;
+  const pair = document.getElementById('fx-pair').value || 'FX';
+  // Covered Interest Rate Parity: F = S * e^(rd - rf)*T
+  const F0 = S * Math.exp((rd - rf) * T);
+  // Fair value in domestic currency: PV of (F0 - K) discounted at domestic rate
+  let pvUnit = (F0 - K) * Math.exp(-rd * T);
+  if (pos === 'sell') pvUnit = -pvUnit;
+  const fv = pvUnit * N;
+  const sens = [];
+  for (const spotShift of [-10, -5, -2, 0, 2, 5, 10]) {
+    const S2  = S * (1 + spotShift/100);
+    const F2  = S2 * Math.exp((rd - rf) * T);
+    let pv2   = (F2 - K) * Math.exp(-rd * T);
+    if (pos === 'sell') pv2 = -pv2;
+    sens.push({label: (spotShift >= 0 ? '+' : '') + spotShift + '% spot', val: pv2 * N});
+  }
+  return {fv, F0, pvUnit, level:2, sens, instrument:'FX Forward', pair, rd, rf, S, K, T, N, pos};
+}
+
+// ─── IMPLIED VOLATILITY SOLVER (Newton-Raphson) ──────────────────
+function solveImpliedVol() {
+  const mktPrice = parseFloat(document.getElementById('iv-mktprice').value);
+  const S        = parseFloat(document.getElementById('iv-spot').value);
+  const K        = parseFloat(document.getElementById('iv-strike').value);
+  const T        = parseFloat(document.getElementById('iv-time').value);
+  const r        = parseFloat(document.getElementById('iv-rfr').value)/100;
+  const q        = parseFloat(document.getElementById('iv-div').value)/100;
+  const type     = document.getElementById('iv-type').value;
+
+  const warnEl = document.getElementById('iv-warn');
+  warnEl.style.display = 'none';
+
+  // Validate: price must exceed intrinsic
+  const intrinsic = type === 'call' ? Math.max(S * Math.exp(-q*T) - K * Math.exp(-r*T), 0)
+                                     : Math.max(K * Math.exp(-r*T) - S * Math.exp(-q*T), 0);
+  if (mktPrice < intrinsic - 0.001) {
+    warnEl.style.display = 'block';
+    warnEl.textContent = `⚠ Market price $${mktPrice.toFixed(4)} is below intrinsic value $${intrinsic.toFixed(4)}. This implies an arbitrage opportunity — verify the price source.`;
+  }
+
+  // Newton-Raphson iteration
+  let sigma = 0.25; // initial guess
+  let iterations = 0;
+  const maxIter = 200;
+  const tol = 1e-8;
+  let converged = false;
+
+  for (let i = 0; i < maxIter; i++) {
+    const price = blackScholes(S, K, T, r, sigma, q, type);
+    const vega  = bsVega(S, K, T, r, sigma, q);
+    const diff  = price - mktPrice;
+    iterations  = i + 1;
+    if (Math.abs(diff) < tol) { converged = true; break; }
+    if (Math.abs(vega) < 1e-12) break; // vega near zero — can't iterate
+    sigma = sigma - diff / vega;
+    if (sigma <= 0) sigma = 0.001; // clamp
+    if (sigma > 20)  sigma = 20;   // cap at 2000% vol
+  }
+
+  const finalPrice = blackScholes(S, K, T, r, sigma, q, type);
+  const finalVega  = bsVega(S, K, T, r, sigma, q);
+  const priceErr   = Math.abs(finalPrice - mktPrice);
+
+  document.getElementById('iv-result').style.display = 'block';
+  document.getElementById('iv-vol-out').textContent  = (sigma * 100).toFixed(2) + '%';
+  document.getElementById('iv-price-out').textContent = '$' + finalPrice.toFixed(4);
+  document.getElementById('iv-err-out').textContent   = 'Error: $' + priceErr.toFixed(6);
+  document.getElementById('iv-iter-out').textContent  = iterations + ' iterations' + (converged ? ' ✓' : ' — did not converge');
+  document.getElementById('iv-vega-out').textContent  = '$' + finalVega.toFixed(4);
+
+  if (!converged || priceErr > 0.001) {
+    warnEl.style.display = 'block';
+    warnEl.textContent = (warnEl.textContent ? warnEl.textContent + ' ' : '') +
+      `Solver ${converged ? 'converged but price error ($' + priceErr.toFixed(4) + ') exceeds $0.001 — check inputs' : 'did not converge — option may be deeply ITM/OTM or inputs are inconsistent'}.`;
+  }
+}
+
+// ─── MANAGEMENT VARIANCE RENDERER ────────────────────────────────
+function renderVariancePanel(data) {
+  const mgmtRaw = document.getElementById('mgmt-value').value;
+  const matRaw  = document.getElementById('mat-threshold').value;
+  if (!mgmtRaw) {
+    document.getElementById('variance-section').style.display = 'none';
+    return;
+  }
+  const mgmt = parseFloat(mgmtRaw);
+  const mat  = matRaw ? parseFloat(matRaw) : null;
+  const varAbs  = data.fv - mgmt;
+  const varPct  = mgmt !== 0 ? varAbs / Math.abs(mgmt) * 100 : null;
+  const absDiff = Math.abs(varAbs);
+  const withinMat = mat ? absDiff <= mat : null;
+
+  let statusClass = 'variance-card';
+  let statusLabel = 'WITHIN REASONABLE RANGE';
+  let statusColor = 'var(--green)';
+  if (withinMat === false) { statusClass += ' fail-card'; statusLabel = 'EXCEEDS MATERIALITY'; statusColor = 'var(--red)'; }
+  else if (withinMat === true) { statusClass += ' pass-card'; }
+  else if (Math.abs(varPct||0) > 10) { statusClass += ' warn-card'; statusLabel = 'DIFFERENCE > 10%'; statusColor = 'var(--yellow)'; }
+
+  const html = `
+    <div class="variance-row">
+      <div class="variance-card">
+        <div class="result-label">AUDITOR FV (IVM)</div>
+        <div class="result-value ${data.fv >= 0 ? 'green' : 'red'}">${fmt(data.fv)}</div>
+        <div class="result-sub">${MODEL_VERSION}</div>
+      </div>
+      <div class="variance-card">
+        <div class="result-label">MANAGEMENT'S REPORTED FV</div>
+        <div class="result-value">${fmt(mgmt)}</div>
+        <div class="result-sub">As reported</div>
+      </div>
+      <div class="variance-card">
+        <div class="result-label">VARIANCE (AUDITOR − MGMT)</div>
+        <div class="result-value ${varAbs >= 0 ? 'green' : 'red'}">${varAbs >= 0 ? '+' : ''}${fmt(varAbs)}</div>
+        <div class="result-sub">${varPct !== null ? (varPct >= 0 ? '+' : '') + varPct.toFixed(2) + '%' : '—'}</div>
+      </div>
+      <div class="${statusClass}">
+        <div class="result-label">ASSESSMENT</div>
+        <div class="result-value" style="font-size:13px;color:${statusColor};">${statusLabel}</div>
+        <div class="result-sub">${mat ? 'Threshold: ' + fmt(mat) : 'No threshold set'}</div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--text2);line-height:1.7;padding:12px;background:var(--surface2);border-radius:6px;border:1px solid var(--border);">
+      <strong style="color:var(--text);">Audit Interpretation:</strong>
+      The auditor's independently computed fair value of <strong>${fmt(data.fv)}</strong> differs from management's reported value of <strong>${fmt(mgmt)}</strong> by <strong>${fmt(varAbs)} (${varPct !== null ? varPct.toFixed(2) + '%' : 'N/A'})</strong>.
+      ${withinMat === true ? 'This variance falls within the stated materiality threshold. The auditor may conclude that management\'s estimate is reasonable, subject to corroboration of all inputs documented in the Sourcing Log.'
+      : withinMat === false ? 'This variance EXCEEDS the stated materiality threshold. The auditor should: (1) challenge the inputs used by management; (2) obtain management\'s methodology documentation; (3) consider whether a misstatement exists; and (4) consult with the engagement partner before concluding.'
+      : 'No materiality threshold was set. The auditor should assess whether this difference is material in the context of the financial statements and document the basis for their conclusion.'}
+    </div>`;
+
+  document.getElementById('variance-content').innerHTML = html;
+  document.getElementById('variance-section').style.display = 'block';
+}
 function levelBadge(lvl, reason) {
   const cls = `level-${lvl}`;
   const labels = {1:'Level 1 — Quoted Market Price',2:'Level 2 — Observable Inputs',3:'Level 3 — Unobservable Inputs'};
@@ -913,6 +1317,14 @@ function renderResults(id, data) {
     html += `</div><hr class="divider"/>`;
     html += `<div class="card-title" style="margin-top:0"><span class="dot"></span>SENSITIVITY — VOLATILITY</div>`;
     html += sensTable(data.sens, 2);
+  } else if (data.instrument === 'FX Forward') {
+    const col = data.fv >= 0 ? 'green' : 'red';
+    html += `<div class="result-card"><div class="result-label">FAIR VALUE (${data.pair})</div><div class="result-value ${col}">${fmt(data.fv)}</div><div class="result-sub">${data.pos === 'buy' ? 'Long' : 'Short'} ${data.N.toLocaleString()} ${data.pair.split('/')[1]||'CCY'}</div></div>`;
+    html += `<div class="result-card"><div class="result-label">FAIR FWD RATE (CIP)</div><div class="result-value">${data.F0.toFixed(4)}</div><div class="result-sub">F = S·e^(r_d−r_f)T</div></div>`;
+    html += `<div class="result-card"><div class="result-label">CONTRACTED RATE</div><div class="result-value">${data.K.toFixed(4)}</div><div class="result-sub">vs Fair Fwd ${data.F0 > data.K ? '↑ above K' : '↓ below K'}</div></div>`;
+    html += `</div><hr class="divider"/>`;
+    html += `<div class="card-title" style="margin-top:0"><span class="dot"></span>SENSITIVITY — SPOT RATE SHIFT</div>`;
+    html += sensTable(data.sens, 3);
   } else {
     // Option / Warrant
     const col = 'green';
@@ -940,8 +1352,14 @@ function renderResults(id, data) {
   }
 
   lastResults = data;
+  renderVariancePanel(data);
+  buildSourcingLog(data);
+  document.getElementById('sourcing-section').style.display = 'block';
+  document.getElementById('so-version').value = MODEL_VERSION;
+  document.getElementById('so-seed').value = 'MC_SEED=' + MC_SEED + ' (fixed)';
+  document.getElementById('so-date').valueAsDate = new Date();
   document.getElementById('memo-section').style.display = 'block';
-  document.getElementById('memo-output').textContent = 'Click "✦ Generate Audit Memo" in the sidebar to produce an ASC 820-compliant working paper memorandum.';
+  document.getElementById('memo-output').textContent = 'Complete the Input Sourcing Log above, then click "✦ Generate Audit Memo" in the sidebar to produce the working paper memorandum.';
   document.getElementById('memo-output').classList.add('loading');
 }
 
@@ -988,8 +1406,109 @@ function runValuation() {
   else if (currentInstrument === 'forward') data = valueForward();
   else if (currentInstrument === 'future') data = valueFuture();
   else if (currentInstrument === 'convertible') data = valueConvertible();
+  else if (currentInstrument === 'fxfwd') data = valueFXForward();
   else data = valueOption();
   renderResults('results-' + currentInstrument, data);
+}
+
+// =====================================================
+// INPUT SOURCING LOG
+// =====================================================
+const SOURCING_INPUTS = {
+  'Interest Rate Swap': [
+    {id:'src-fixed',    label:'Fixed Rate',              obs:'Observable — Contractual'},
+    {id:'src-float',    label:'Floating Rate (SOFR)',     obs:'Observable — Market (Fed H.15 / Bloomberg)'},
+    {id:'src-disc-sw',  label:'Discount Rate (OIS)',      obs:'Observable — OIS curve'},
+    {id:'src-cva',      label:'CVA Adjustment',          obs:'Model-derived / Counterparty credit'},
+    {id:'src-notional', label:'Notional Principal',      obs:'Observable — Contractual'},
+  ],
+  'Forward Contract': [
+    {id:'src-spot-fw',  label:'Spot Price',              obs:'Observable — Exchange / Bloomberg'},
+    {id:'src-strike-fw',label:'Delivery Price',          obs:'Observable — Contractual'},
+    {id:'src-rfr-fw',   label:'Risk-Free Rate',          obs:'Observable — Treasury curve'},
+    {id:'src-div-fw',   label:'Dividend / Convenience Yield', obs:'Observable / Estimated'},
+  ],
+  'Futures Contract': [
+    {id:'src-settle',   label:'Settlement Price',        obs:'Observable — Exchange (Level 1)'},
+    {id:'src-entry',    label:'Entry Price',             obs:'Observable — Trade confirmation'},
+    {id:'src-mult',     label:'Contract Multiplier',     obs:'Observable — Exchange specification'},
+  ],
+  'Convertible Note': [
+    {id:'src-face',     label:'Face Value',              obs:'Observable — Contractual'},
+    {id:'src-disc-cn',  label:'Market Discount Rate',    obs:'⚠ Unobservable (Level 3) — credit analysis required'},
+    {id:'src-vol-cn',   label:'Equity Volatility',       obs:'⚠ Unobservable (Level 3) — comp set required'},
+    {id:'src-stock-cn', label:'Current Share Price',     obs:'Observable if public / Unobservable if private'},
+    {id:'src-rfr-cn',   label:'Risk-Free Rate',          obs:'Observable — Treasury curve'},
+    {id:'src-convpx',   label:'Conversion Price',        obs:'Observable — Contractual'},
+  ],
+  'FX Forward': [
+    {id:'src-fx-spot',   label:'Spot Exchange Rate',       obs:'Observable — Reuters/Bloomberg WM Fix (Level 2)'},
+    {id:'src-fx-fwd',    label:'Contracted Forward Rate',  obs:'Observable — Contractual'},
+    {id:'src-fx-rd',     label:'Domestic Risk-Free Rate',  obs:'Observable — OIS / central bank (Level 2)'},
+    {id:'src-fx-rf',     label:'Foreign Risk-Free Rate',   obs:'Observable — Foreign OIS / central bank (Level 2)'},
+  ],
+  'Stock Option': [
+    {id:'src-spot-op',  label:'Spot / Stock Price',      obs:'Observable (exchange) or Unobservable (private)'},
+    {id:'src-vol-op',   label:'Implied / Historical Volatility', obs:'⚠ Key input — document source and method'},
+    {id:'src-rfr-op',   label:'Risk-Free Rate',          obs:'Observable — Treasury curve'},
+    {id:'src-div-op',   label:'Dividend Yield',          obs:'Observable / Estimated'},
+    {id:'src-strike-op',label:'Strike Price',            obs:'Observable — Contractual'},
+  ],
+  'Warrant': [
+    {id:'src-spot-op',  label:'Spot / Stock Price',      obs:'Observable (exchange) or Unobservable (private)'},
+    {id:'src-vol-op',   label:'Volatility',              obs:'⚠ Unobservable if issuer is private (Level 3)'},
+    {id:'src-rfr-op',   label:'Risk-Free Rate',          obs:'Observable — Treasury curve'},
+    {id:'src-strike-op',label:'Exercise Price',          obs:'Observable — Warrant certificate'},
+  ],
+};
+
+function buildSourcingLog(data) {
+  const inputs = SOURCING_INPUTS[data.instrument] || SOURCING_INPUTS['Stock Option'];
+  const container = document.getElementById('sourcing-rows');
+  container.innerHTML = inputs.map(inp => `
+    <div class="sourcing-row">
+      <div class="sourcing-param">${inp.label}</div>
+      <input type="text" class="sourcing-input" id="${inp.id}"
+        placeholder="e.g. Bloomberg SOFR page, ${new Date().toLocaleDateString()}"
+        data-label="${inp.label}" />
+      <div style="font-size:11px;color:${inp.obs.includes('⚠')?'var(--yellow)':'var(--text3)'};">${inp.obs}</div>
+      <select class="sourcing-level" id="${inp.id}-lvl">
+        <option value="Level 1">Level 1</option>
+        <option value="Level 2" selected>Level 2</option>
+        <option value="Level 3">Level 3</option>
+        <option value="N/A">N/A</option>
+      </select>
+    </div>`).join('');
+
+  // Auto-set Level 3 for known unobservable inputs
+  inputs.forEach(inp => {
+    if (inp.obs.includes('Unobservable (Level 3)')) {
+      const sel = document.getElementById(`${inp.id}-lvl`);
+      if (sel) sel.value = 'Level 3';
+    }
+  });
+}
+
+function getSourcingData() {
+  const rows = document.querySelectorAll('.sourcing-row');
+  const entries = [];
+  rows.forEach(row => {
+    const inp = row.querySelector('.sourcing-input');
+    const sel = row.querySelector('.sourcing-level');
+    const label = inp ? inp.getAttribute('data-label') : '';
+    const source = inp ? inp.value : '';
+    const level = sel ? sel.value : '';
+    if (label) entries.push({label, source: source || '[NOT DOCUMENTED]', level});
+  });
+  return {
+    entries,
+    preparer: document.getElementById('so-preparer').value || '[NOT SIGNED]',
+    role: document.getElementById('so-role').value || '',
+    reviewer: document.getElementById('so-reviewer').value || '',
+    date: document.getElementById('so-date').value || '',
+    version: MODEL_VERSION,
+    seed: MC_SEED,
+  };
 }
 
 // =====================================================
@@ -1004,6 +1523,25 @@ function generateMemo() {
   const ref  = document.getElementById('auditor-ref').value  || 'N/A';
   const client = document.getElementById('client-name').value || '[Client Name]';
   const r = lastResults;
+  const src = getSourcingData();
+
+  // Build sourcing log block for memo
+  const sourcingBlock = src.entries.map(e =>
+    `  ${e.label.padEnd(32)} | ${e.level.padEnd(8)} | ${e.source}`
+  ).join('\n');
+
+  const undocumented = src.entries.filter(e => e.source === '[NOT DOCUMENTED]');
+  const sourcingWarning = undocumented.length > 0
+    ? `\n⚠ WARNING: ${undocumented.length} input(s) not documented: ${undocumented.map(e=>e.label).join(', ')}. Complete the sourcing log before filing this memo.`
+    : '  All inputs documented.';
+
+  const mgmtRaw = document.getElementById('mgmt-value').value;
+  const matRaw  = document.getElementById('mat-threshold').value;
+  const mgmtVal = mgmtRaw ? parseFloat(mgmtRaw) : null;
+  const matVal  = matRaw  ? parseFloat(matRaw)  : null;
+  const varAbs  = mgmtVal !== null ? r.fv - mgmtVal : null;
+  const varPct  = (mgmtVal !== null && mgmtVal !== 0) ? (varAbs / Math.abs(mgmtVal) * 100) : null;
+  const hasMC = !!r.mc;
 
   const levelLabels = {
     1: 'Level 1 — Quoted prices in active markets for identical assets or liabilities',
@@ -1138,6 +1676,39 @@ This approach is consistent with ASC 820-10-35-24A and reflects the exit price a
 
     conclusion = `The independently derived fair value of the convertible note as of ${date} is ${fmt(r.fv)}, comprising a debt component of ${fmt(r.pvDebt)} and an embedded option component of ${fmt(r.optVal)}. The valuation is classified as Level 3 under ASC 820 due to the use of unobservable inputs (discount rate and volatility). The auditor recommends: (1) challenging management's volatility assumption against a documented comparable company analysis; (2) obtaining independent support for the credit-adjusted discount rate; and (3) ensuring the sensitivity range ${range} is disclosed in the financial statement footnotes.`;
 
+  // ─── FX FORWARD ───
+  } else if (r.instrument === 'FX Forward') {
+    const spot   = document.getElementById('fx-spot').value;
+    const strike = document.getElementById('fx-strike').value;
+    const rd     = document.getElementById('fx-rd').value;
+    const rf     = document.getElementById('fx-rf').value;
+    const T      = document.getElementById('fx-time').value;
+    const N      = document.getElementById('fx-notional').value;
+    const pos    = document.getElementById('fx-pos').value;
+    const pair   = document.getElementById('fx-pair').value || 'FX';
+    const range  = sensRange(r.sens);
+
+    instrDesc = `The instrument is a ${pos === 'buy' ? 'long (buy foreign currency)' : 'short (sell foreign currency)'} FX forward on ${pair} with a notional of ${parseInt(N).toLocaleString()} foreign currency units. The contracted forward rate is ${parseFloat(strike).toFixed(4)}. The current spot rate is ${parseFloat(spot).toFixed(4)} (domestic per foreign). Remaining term is ${T} years. The domestic risk-free rate is ${rd}% and the foreign risk-free rate is ${rf}%.`;
+
+    methodology = `The FX forward is valued using Covered Interest Rate Parity (CIP), which is the no-arbitrage condition linking spot rates, forward rates, and interest rate differentials:
+
+  Fair Forward Rate:  F₀ = S × e^(r_d − r_f) × T = ${parseFloat(spot).toFixed(4)} × e^(${rd}% − ${rf}%) × ${T} = ${r.F0.toFixed(4)}
+
+  Fair Value (${pos === 'buy' ? 'Long' : 'Short'}):  FV = (F₀ − K) × e^(−r_d × T) × Notional = ${fmt(r.fv)}
+
+This methodology is consistent with ASC 820-10-35-24A and reflects the exit price under observable market inputs. CIP is the standard market convention for FX forward valuation and is used by all major financial institutions. The contracted rate of ${parseFloat(strike).toFixed(4)} ${r.F0 > parseFloat(strike) ? 'is below' : 'is above'} the fair forward rate of ${r.F0.toFixed(4)}, creating a fair value ${r.fv >= 0 ? 'asset' : 'liability'} for the ${pos === 'buy' ? 'long' : 'short'} position.`;
+
+    inputs = `  Spot Rate (${pair}): ${parseFloat(spot).toFixed(4)} — Observable; source from Reuters WM/Reuters Fix or Bloomberg BFIX as of ${date}. Level 2.
+  Contracted Forward Rate: ${parseFloat(strike).toFixed(4)} — Contractual; sourced from executed FX forward confirmation.
+  Domestic Risk-Free Rate: ${rd}% — OIS rate for domestic currency. Source from Fed H.15 (USD), ECB website, or Bloomberg. Observable (Level 2).
+  Foreign Risk-Free Rate: ${rf}% — OIS or central bank rate for foreign currency. Source from relevant central bank. Observable (Level 2).
+  Time to Maturity: ${T} years — Derived from contractual settlement date.
+  Notional: ${parseInt(N).toLocaleString()} ${pair} — Contractual; confirmed from executed trade confirmation.`;
+
+    sensNarrative = `Spot rate sensitivity analysis was performed across ±10% scenarios. The resulting fair value range is ${range}. FX forwards are primarily sensitive to changes in the spot exchange rate and, to a lesser extent, interest rate differentials. All inputs are Level 2 observable. No sensitivity disclosure is required under ASC 820-10-50-2(bbb) for Level 2 instruments, but the auditor should confirm the spot rate source is a reputable benchmark (WM/Reuters Fix or Bloomberg BFIX) to support the Level 2 classification.`;
+
+    conclusion = `The independently derived fair value of the ${pair} FX forward as of ${date} is ${fmt(r.fv)} (${r.fv >= 0 ? 'asset' : 'liability'}), based on the Covered Interest Rate Parity model. The fair forward rate of ${r.F0.toFixed(4)} compares to the contracted rate of ${parseFloat(strike).toFixed(4)}, producing the computed fair value. The instrument is classified as ASC 820 Level 2. The auditor recommends: (1) confirming the spot rate against the WM/Reuters 4pm Fix on the valuation date; (2) verifying both interest rates from central bank publications; and (3) confirming the settlement date and notional from the executed ISDA/FX confirmation.`;
+
   // ─── OPTIONS / WARRANTS ───
   } else {
     const S      = document.getElementById('op-spot').value;
@@ -1186,7 +1757,10 @@ Working Paper Ref :  ${ref}
 Client / Entity   :  ${client}
 Instrument        :  ${r.instrument}
 Valuation Date    :  ${date}
-Prepared by       :  Independent Valuation Model v1.0
+Prepared by       :  ${src.preparer}${src.role ? ' — ' + src.role : ''}
+Independent Review:  ${src.reviewer || 'N/A'}
+Model Version     :  ${src.version}
+MC Seed (fixed)   :  ${src.seed} — results reproducible
 ASC 820 Level     :  ${levelLabels[r.level]}
 Fair Value        :  ${fmt(r.fv)}
 
@@ -1211,6 +1785,14 @@ ${methodology}
 ${inputs}
 
 ────────────────────────────────────────────────────────────────
+4A. INPUT SOURCING LOG
+────────────────────────────────────────────────────────────────
+Input                            | Level    | Source / Data Provider
+─────────────────────────────────────────────────────────────────────
+${sourcingBlock}
+${sourcingWarning}
+
+────────────────────────────────────────────────────────────────
 5. ASC 820 FAIR VALUE HIERARCHY CLASSIFICATION
 ────────────────────────────────────────────────────────────────
 Classification: ${levelLabels[r.level]}
@@ -1227,14 +1809,46 @@ ${r.level === 1
 ${sensNarrative}
 
 ────────────────────────────────────────────────────────────────
-7. AUDITOR'S CONCLUSION
+7. MODEL LIMITATIONS
+────────────────────────────────────────────────────────────────
+The IVM (${src.version}) does not model: American-style early exercise premiums, barrier or path-dependent options, inflation-linked instruments, credit default swaps, illiquidity discounts, or bid-ask spread adjustments. Where any of these features are present in the instrument under review, this model's output should not be used without supplemental analysis.
+
+Monte Carlo results use a fixed seed (${src.seed}) to ensure full reproducibility. Black-Scholes is the primary valuation output; Monte Carlo serves as a corroborating cross-check.
+
+────────────────────────────────────────────────────────────────
+8. MANAGEMENT VARIANCE ANALYSIS
+────────────────────────────────────────────────────────────────
+${mgmtVal !== null
+  ? `Management's Reported Fair Value : ${fmt(mgmtVal)}
+Auditor's Independent FV (IVM)   : ${fmt(r.fv)}
+Variance (Auditor − Management)  : ${varAbs >= 0 ? '+' : ''}${fmt(varAbs)} (${varPct !== null ? (varPct >= 0 ? '+' : '') + varPct.toFixed(2) + '%' : 'N/A'})
+Materiality Threshold            : ${matVal !== null ? fmt(matVal) : 'Not set'}
+Assessment                       : ${matVal !== null
+    ? Math.abs(varAbs) <= matVal
+      ? '✓ WITHIN MATERIALITY — Variance falls within threshold. Management\'s estimate is supportable subject to input verification.'
+      : '✗ EXCEEDS MATERIALITY — Variance exceeds threshold. Auditor should challenge management\'s inputs, obtain methodology documentation, and consult engagement partner.'
+    : Math.abs(varPct||0) > 10
+      ? '⚠ DIFFERENCE > 10% — No threshold set, but variance exceeds 10%. Consider whether this is material in context of financial statements.'
+      : 'No materiality threshold set — auditor to assess materiality judgment independently.'}`
+  : 'Management\'s reported value not entered. To compare against management\'s estimate, enter their reported fair value in the sidebar before generating this memo.'}
+
+────────────────────────────────────────────────────────────────
+9. AUDITOR'S CONCLUSION
 ────────────────────────────────────────────────────────────────
 ${conclusion}
 
 ════════════════════════════════════════════════════════════════
-Prepared:  ${date}   |   Ref: ${ref}   |   IVM v1.0 — Template-Based
+SIGN-OFF
+════════════════════════════════════════════════════════════════
+Prepared by  :  ${src.preparer}${src.role ? ' (' + src.role + ')' : ''}
+Reviewed by  :  ${src.reviewer || 'N/A'}
+Date         :  ${src.date || date}
+Model        :  ${src.version} | MC Seed: ${src.seed}
+Working Paper:  ${ref}
+
 This memorandum is prepared for audit purposes only and does not
-constitute investment advice or a fairness opinion.
+constitute investment advice or a fairness opinion. Retain in
+the permanent audit file alongside the Input Sourcing Log.
 ════════════════════════════════════════════════════════════════`;
 
   memoEl.textContent = memo;
