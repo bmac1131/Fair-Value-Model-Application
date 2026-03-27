@@ -638,10 +638,32 @@
             </div>
           </div>
         </div>
+        <div class="card">
+          <div class="card-title"><span class="dot" style="background:var(--yellow)"></span>Marketability Adjustment (DLOM)</div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6;">
+            Apply a Discount for Lack of Marketability to the equity conversion option only — not the debt component. Leave at 0% for publicly traded issuers. DLOM is a significant Level 3 input; ranges typically 10–35% for private companies depending on put option models or restricted stock studies.
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>DLOM (%) <span class="tooltip-icon" data-tip="Discount for Lack of Marketability applied to the equity conversion option component. Reflects a market participant's inability to freely sell shares received upon conversion. Level 3 input — document methodology (e.g. Finnerty, Longstaff, restricted stock studies). Typical range: 10–35%. Enter 0 for public issuers.">?</span></label>
+              <input type="number" id="cn-dlom" value="0" step="0.5" min="0" max="50" />
+            </div>
+            <div class="form-group">
+              <label>DLOM Basis <span class="tooltip-icon" data-tip="Document the methodology used to support the DLOM percentage. Common approaches: Finnerty Average Strike Put Model, Longstaff Lookback Model, Restricted Stock Studies (Columbia, FMV Opinions database), or Management Planning studies.">?</span></label>
+              <select id="cn-dlom-basis">
+                <option value="none">N/A — Public issuer</option>
+                <option value="finnerty">Finnerty Put Option Model</option>
+                <option value="longstaff">Longstaff Lookback Model</option>
+                <option value="restricted">Restricted Stock Studies</option>
+                <option value="ipoStudies">Pre-IPO / Discount Studies</option>
+                <option value="other">Other — document in sourcing log</option>
+              </select>
+            </div>
+          </div>
+          <div id="cn-dlom-warn" style="display:none;margin-top:10px;padding:9px 13px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:5px;font-size:12px;color:var(--red);"></div>
+        </div>
         <div id="results-convertible" style="display:none;"></div>
       </div>
-
-      <!-- ====== OPTIONS / WARRANTS ====== -->
       <div class="instrument-panel" id="panel-option">
         <div class="section-header">
           <div class="section-title">◎ Options &amp; Warrants Valuation</div>
@@ -694,7 +716,23 @@
               <label>Number of Contracts / Units <span class="tooltip-icon" data-tip="For exchange options: each contract covers 100 shares. For warrants: enter total warrant count.">?</span></label>
               <input type="number" id="op-qty" value="100" />
             </div>
+            <div class="form-group">
+              <label>DLOM (%) <span class="tooltip-icon" data-tip="Discount for Lack of Marketability. Apply only to private company options/warrants where the underlying equity is not freely tradeable. Leave at 0% for exchange-traded options. Level 3 input — typical range 10–35%. Applied as a percentage reduction to the option fair value.">?</span></label>
+              <input type="number" id="op-dlom" value="0" step="0.5" min="0" max="50" />
+            </div>
+            <div class="form-group">
+              <label>DLOM Basis <span class="tooltip-icon" data-tip="Methodology supporting the DLOM percentage. Not required when DLOM = 0%.">?</span></label>
+              <select id="op-dlom-basis">
+                <option value="none">N/A — Public / exchange-traded</option>
+                <option value="finnerty">Finnerty Put Option Model</option>
+                <option value="longstaff">Longstaff Lookback Model</option>
+                <option value="restricted">Restricted Stock Studies</option>
+                <option value="ipoStudies">Pre-IPO / Discount Studies</option>
+                <option value="other">Other — document in sourcing log</option>
+              </select>
+            </div>
           </div>
+          <div id="op-dlom-warn" style="display:none;margin-top:10px;padding:9px 13px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:5px;font-size:12px;color:var(--red);"></div>
         </div>
         <div id="results-option" style="display:none;"></div>
       </div>
@@ -1069,23 +1107,48 @@ function valueConvertible() {
   const S = parseFloat(document.getElementById('cn-stock').value);
   const sigma = parseFloat(document.getElementById('cn-vol').value)/100;
   const rfr = parseFloat(document.getElementById('cn-rfr').value)/100;
-  // DCF straight debt
+  const dlom = parseFloat(document.getElementById('cn-dlom').value||0)/100;
+  const dlomBasis = document.getElementById('cn-dlom-basis').value;
+
+  // DLOM warning
+  const warnEl = document.getElementById('cn-dlom-warn');
+  if (dlom > 0.35) {
+    warnEl.style.display = 'block';
+    warnEl.textContent = `⚠ DLOM of ${(dlom*100).toFixed(1)}% exceeds 35% — above the typical supportable range. Auditors and regulators will scrutinize this. Ensure robust documentation is available (e.g. quantitative model output, not just management assertion).`;
+  } else if (dlom > 0 && dlomBasis === 'none') {
+    warnEl.style.display = 'block';
+    warnEl.textContent = `⚠ DLOM applied but basis is set to N/A. Select a methodology to support this adjustment.`;
+  } else { warnEl.style.display = 'none'; }
+
+  // DCF straight debt — DLOM does NOT apply to debt component
   let pvDebt = 0;
   for (let i=1;i<=Math.round(T*2);i++) {
     pvDebt += (c/2*F) * Math.exp(-r*(i/2));
   }
   pvDebt += F * Math.exp(-r*T);
-  // Shares per note
+
+  // Option component — DLOM applied here only
   const shares = F / K;
-  const optVal = blackScholes(S, K, T, rfr, sigma, 0, 'call') * shares;
+  const optValRaw = blackScholes(S, K, T, rfr, sigma, 0, 'call') * shares;
+  const dlomAdj   = optValRaw * dlom;          // dollar reduction
+  const optVal    = optValRaw * (1 - dlom);    // post-DLOM option value
   const fv = pvDebt + optVal;
+
+  // Sensitivity: vary volatility at fixed DLOM
   const sens = [];
   for (const vShift of [-20,-10,0,10,20]) {
     const s2 = Math.max(0.01, sigma+vShift/100);
-    const o2 = blackScholes(S,K,T,rfr,s2,0,'call')*shares;
+    const o2 = blackScholes(S,K,T,rfr,s2,0,'call')*shares*(1-dlom);
     sens.push({label:(vShift>=0?'+':'')+vShift+'% vol', val: pvDebt+o2});
   }
-  return {fv, pvDebt, optVal, level:3, sens, instrument:'Convertible Note'};
+  // DLOM sensitivity: vary DLOM at fixed vol
+  const dlomSens = [];
+  for (const d of [0, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35]) {
+    dlomSens.push({label: (d*100).toFixed(0)+'% DLOM', val: pvDebt + optValRaw*(1-d)});
+  }
+
+  return {fv, pvDebt, optVal, optValRaw, dlomAdj, dlom, dlomBasis,
+          level:3, sens, dlomSens, instrument:'Convertible Note'};
 }
 
 function valueOption() {
@@ -1098,21 +1161,53 @@ function valueOption() {
   const type = document.getElementById('op-type').value;
   const sub = document.getElementById('op-sub').value;
   const qty = parseFloat(document.getElementById('op-qty').value);
+  const dlom = parseFloat(document.getElementById('op-dlom').value||0)/100;
+  const dlomBasis = document.getElementById('op-dlom-basis').value;
   const multiplier = sub === 'option-exchange' ? 100 : 1;
-  const bsVal = blackScholes(S,K,T,r,sigma,q,type);
+
+  // DLOM warning
+  const warnEl = document.getElementById('op-dlom-warn');
+  if (dlom > 0 && sub === 'option-exchange') {
+    warnEl.style.display = 'block';
+    warnEl.textContent = `⚠ DLOM applied to an exchange-traded option. DLOM is not applicable to exchange-traded instruments with quoted prices — remove this adjustment or reclassify the instrument subtype.`;
+  } else if (dlom > 0.35) {
+    warnEl.style.display = 'block';
+    warnEl.textContent = `⚠ DLOM of ${(dlom*100).toFixed(1)}% exceeds 35% — requires strong documented support. Regulators will scrutinize this input.`;
+  } else if (dlom > 0 && dlomBasis === 'none') {
+    warnEl.style.display = 'block';
+    warnEl.textContent = `⚠ DLOM applied but basis is N/A. Select a methodology to support this adjustment.`;
+  } else { warnEl.style.display = 'none'; }
+
+  const bsValRaw = blackScholes(S,K,T,r,sigma,q,type);
   const delta = bsDelta(S,K,T,r,sigma,q,type);
   const vega = bsVega(S,K,T,r,sigma,q);
   const mc = monteCarlo(S,K,T,r,sigma,q,type,1000);
-  const fv = bsVal * qty * multiplier;
-  const mcFv = mc.mean * qty * multiplier;
+
+  // Apply DLOM to option value
+  const dlomAdj  = bsValRaw * dlom;
+  const bsVal    = bsValRaw * (1 - dlom);
+  const fv       = bsVal * qty * multiplier;
+  const mcFvRaw  = mc.mean * qty * multiplier;
+  const mcFv     = mcFvRaw * (1 - dlom);
+
   const level = sub==='option-exchange' ? 2 : 3;
+
+  // Vol sensitivity at fixed DLOM
   const sens = [];
   for (const vShift of [-15,-10,-5,0,5,10,15]) {
     const s2=Math.max(0.01,sigma+vShift/100);
-    const bv2=blackScholes(S,K,T,r,s2,q,type)*qty*multiplier;
+    const bv2=blackScholes(S,K,T,r,s2,q,type)*(1-dlom)*qty*multiplier;
     sens.push({label:(vShift>=0?'+':'')+vShift+'% vol', val:bv2});
   }
-  return {fv, mcFv, bsVal, delta, vega, mc, qty, multiplier, level, sens, instrument: sub==='warrant'?'Warrant':'Stock Option'};
+  // DLOM sensitivity
+  const dlomSens = [];
+  for (const d of [0, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35]) {
+    dlomSens.push({label:(d*100).toFixed(0)+'% DLOM', val: bsValRaw*(1-d)*qty*multiplier});
+  }
+
+  return {fv, mcFv, bsVal, bsValRaw, dlomAdj, dlom, dlomBasis,
+          delta, vega, mc, qty, multiplier, level, sens, dlomSens,
+          instrument: sub==='warrant'?'Warrant':'Stock Option'};
 }
 
 function valueFXForward() {
@@ -1311,12 +1406,16 @@ function renderResults(id, data) {
     html += `<div class="result-card"><div class="result-label">PRICE MOVE</div><div class="result-value ${col}">${fmt(data.settle - data.entry)}/unit</div></div>`;
     html += `</div>`;
   } else if (data.instrument === 'Convertible Note') {
-    html += `<div class="result-card"><div class="result-label">TOTAL FAIR VALUE</div><div class="result-value green">${fmt(data.fv)}</div></div>`;
-    html += `<div class="result-card"><div class="result-label">DEBT COMPONENT</div><div class="result-value">${fmt(data.pvDebt)}</div><div class="result-sub">Straight bond DCF</div></div>`;
-    html += `<div class="result-card"><div class="result-label">OPTION COMPONENT</div><div class="result-value">${fmt(data.optVal)}</div><div class="result-sub">Black-Scholes (conversion)</div></div>`;
+    html += `<div class="result-card"><div class="result-label">TOTAL FAIR VALUE</div><div class="result-value green">${fmt(data.fv)}</div>${data.dlom > 0 ? `<div class="result-sub" style="color:var(--yellow);">DLOM applied: ${(data.dlom*100).toFixed(1)}%</div>` : ''}</div>`;
+    html += `<div class="result-card"><div class="result-label">DEBT COMPONENT</div><div class="result-value">${fmt(data.pvDebt)}</div><div class="result-sub">Straight bond DCF — no DLOM</div></div>`;
+    html += `<div class="result-card"><div class="result-label">OPTION COMPONENT</div><div class="result-value">${fmt(data.optVal)}</div><div class="result-sub">B-S pre-DLOM: ${fmt(data.optValRaw)}${data.dlom > 0 ? ` | Adj: −${fmt(data.dlomAdj)}` : ''}</div></div>`;
     html += `</div><hr class="divider"/>`;
-    html += `<div class="card-title" style="margin-top:0"><span class="dot"></span>SENSITIVITY — VOLATILITY</div>`;
+    html += `<div class="card-title" style="margin-top:0"><span class="dot"></span>SENSITIVITY — VOLATILITY (at ${(data.dlom*100).toFixed(1)}% DLOM)</div>`;
     html += sensTable(data.sens, 2);
+    if (data.dlom > 0) {
+      html += `<div class="card-title" style="margin-top:16px;"><span class="dot" style="background:var(--yellow)"></span>DLOM SENSITIVITY — IMPACT ON TOTAL FAIR VALUE</div>`;
+      html += sensTable(data.dlomSens, data.dlomSens.findIndex(d => Math.abs(d.val - data.fv) < 1));
+    }
   } else if (data.instrument === 'FX Forward') {
     const col = data.fv >= 0 ? 'green' : 'red';
     html += `<div class="result-card"><div class="result-label">FAIR VALUE (${data.pair})</div><div class="result-value ${col}">${fmt(data.fv)}</div><div class="result-sub">${data.pos === 'buy' ? 'Long' : 'Short'} ${data.N.toLocaleString()} ${data.pair.split('/')[1]||'CCY'}</div></div>`;
@@ -1328,12 +1427,23 @@ function renderResults(id, data) {
   } else {
     // Option / Warrant
     const col = 'green';
-    html += `<div class="result-card"><div class="result-label">BLACK-SCHOLES FV</div><div class="result-value ${col}">${fmt(data.fv)}</div><div class="result-sub">Per-unit: ${fmt(data.bsVal)}</div></div>`;
-    html += `<div class="result-card"><div class="result-label">MONTE CARLO FV</div><div class="result-value">${fmt(data.mcFv)}</div><div class="result-sub">±${fmt(data.mc.stdErr*data.qty*data.multiplier)} (1 s.e., n=1000)</div></div>`;
-    html += `<div class="result-card"><div class="result-label">DELTA</div><div class="result-value">${fmtN(data.delta,4)}</div><div class="result-sub">Vega: ${fmtN(data.vega,2)}</div></div>`;
-    html += `</div><hr class="divider"/>`;
-    html += `<div class="card-title" style="margin-top:0"><span class="dot"></span>SENSITIVITY — VOLATILITY</div>`;
+    html += `<div class="result-card"><div class="result-label">BLACK-SCHOLES FV</div><div class="result-value ${col}">${fmt(data.fv)}</div><div class="result-sub">Per-unit: ${fmt(data.bsVal)}${data.dlom > 0 ? ` (pre-DLOM: ${fmt(data.bsValRaw)})` : ''}</div></div>`;
+    html += `<div class="result-card"><div class="result-label">MONTE CARLO FV</div><div class="result-value">${fmt(data.mcFv)}</div><div class="result-sub">±${fmt(data.mc.stdErr*data.qty*data.multiplier)} (1 s.e., n=1000)${data.dlom > 0 ? ` incl. ${(data.dlom*100).toFixed(1)}% DLOM` : ''}</div></div>`;
+    html += `<div class="result-card"><div class="result-label">DELTA / VEGA</div><div class="result-value">${fmtN(data.delta,4)}</div><div class="result-sub">Vega: ${fmtN(data.vega,2)}${data.dlom > 0 ? ` | DLOM adj: −${fmt(data.dlomAdj * data.qty * data.multiplier)}` : ''}</div></div>`;
+    html += `</div>`;
+    if (data.dlom > 0) {
+      html += `<div style="margin:8px 0 14px;padding:10px 14px;background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.25);border-radius:6px;font-size:12px;color:var(--yellow);">
+        ◉ DLOM Applied: ${(data.dlom*100).toFixed(1)}% reduction to option fair value — pre-DLOM B-S: ${fmt(data.bsValRaw * data.qty * data.multiplier)} → post-DLOM: ${fmt(data.fv)}. Basis: ${data.dlomBasis}. Level 3 input — must be documented in sourcing log and disclosed in financial statement footnotes.
+      </div>`;
+    }
+    html += `<hr class="divider"/>`;
+    html += `<div class="card-title" style="margin-top:0"><span class="dot"></span>SENSITIVITY — VOLATILITY (at ${(data.dlom*100).toFixed(1)}% DLOM)</div>`;
     html += sensTable(data.sens, 3);
+    if (data.dlom > 0) {
+      html += `<div class="card-title" style="margin-top:16px;"><span class="dot" style="background:var(--yellow)"></span>DLOM SENSITIVITY — IMPACT ON TOTAL FAIR VALUE</div>`;
+      const dlomBase = data.dlomSens.findIndex(d => Math.abs(parseFloat((d.val).toFixed(0)) - parseFloat(data.fv.toFixed(0))) < 10);
+      html += sensTable(data.dlomSens, dlomBase >= 0 ? dlomBase : 0);
+    }
     // MC distribution bar
     html += `<div style="margin-top:16px"><div class="card-title"><span class="dot"></span>MONTE CARLO — TERMINAL PRICE DISTRIBUTION (n=1,000)</div>`;
     html += `<canvas id="mc-canvas" height="120"></canvas></div>`;
@@ -1440,6 +1550,7 @@ const SOURCING_INPUTS = {
     {id:'src-stock-cn', label:'Current Share Price',     obs:'Observable if public / Unobservable if private'},
     {id:'src-rfr-cn',   label:'Risk-Free Rate',          obs:'Observable — Treasury curve'},
     {id:'src-convpx',   label:'Conversion Price',        obs:'Observable — Contractual'},
+    {id:'src-dlom-cn',  label:'DLOM (if applied)',       obs:'⚠ Unobservable (Level 3) — model/study documentation required'},
   ],
   'FX Forward': [
     {id:'src-fx-spot',   label:'Spot Exchange Rate',       obs:'Observable — Reuters/Bloomberg WM Fix (Level 2)'},
@@ -1453,12 +1564,14 @@ const SOURCING_INPUTS = {
     {id:'src-rfr-op',   label:'Risk-Free Rate',          obs:'Observable — Treasury curve'},
     {id:'src-div-op',   label:'Dividend Yield',          obs:'Observable / Estimated'},
     {id:'src-strike-op',label:'Strike Price',            obs:'Observable — Contractual'},
+    {id:'src-dlom-op',  label:'DLOM (if applied)',       obs:'⚠ Unobservable (Level 3) — model/study documentation required'},
   ],
   'Warrant': [
     {id:'src-spot-op',  label:'Spot / Stock Price',      obs:'Observable (exchange) or Unobservable (private)'},
     {id:'src-vol-op',   label:'Volatility',              obs:'⚠ Unobservable if issuer is private (Level 3)'},
     {id:'src-rfr-op',   label:'Risk-Free Rate',          obs:'Observable — Treasury curve'},
     {id:'src-strike-op',label:'Exercise Price',          obs:'Observable — Warrant certificate'},
+    {id:'src-dlom-op',  label:'DLOM (if applied)',       obs:'⚠ Unobservable (Level 3) — model/study documentation required'},
   ],
 };
 
@@ -1670,11 +1783,12 @@ This approach is consistent with ASC 820-10-35-24A and reflects the exit price a
   Conversion Price: $${convpx} — Contractual.
   Stock Price: $${stock} — Observable market price as of ${date}. Level 1 if publicly traded; Level 3 if private.
   Volatility: ${vol}% — SIGNIFICANT LEVEL 3 INPUT. Historical or implied volatility of the underlying equity. Auditor must assess the appropriateness of the volatility selection and document comparable company analysis if the entity is private.
-  Risk-Free Rate: ${rfr}% — Treasury yield curve rate for applicable term. Observable (Level 2).`;
+  Risk-Free Rate: ${rfr}% — Treasury yield curve rate for applicable term. Observable (Level 2).
+  DLOM: ${r.dlom > 0 ? (r.dlom*100).toFixed(1)+'% — SIGNIFICANT LEVEL 3 INPUT. Applied to equity conversion option component only (not debt). Dollar reduction: '+fmt(r.dlomAdj)+'. Basis: '+r.dlomBasis+'. Auditor must obtain quantitative support for this percentage (e.g. Finnerty/Longstaff model output, restricted stock study). Pre-DLOM option value: '+fmt(r.optValRaw)+'; post-DLOM: '+fmt(r.optVal)+'.' : '0% — Not applied. Issuer is public or DLOM was assessed as not applicable.'}`;
 
-    sensNarrative = `Volatility sensitivity analysis was performed (the most significant unobservable input). The fair value range across ±20% volatility scenarios is ${range}. This range must be disclosed under ASC 820-10-50-2(bbb) as the instrument is classified Level 3. Management's point estimate of ${fmt(r.fv)} should be assessed for reasonableness against this range.`;
+    sensNarrative = `Volatility sensitivity analysis was performed (the most significant unobservable input). The fair value range across ±20% volatility scenarios is ${range}.${r.dlom > 0 ? ` A separate DLOM sensitivity analysis was also performed across 0%–35% DLOM scenarios, with fair value ranging from ${fmt(r.dlomSens[0].val)} (0% DLOM) to ${fmt(r.dlomSens[r.dlomSens.length-1].val)} (35% DLOM). The applied DLOM of ${(r.dlom*100).toFixed(1)}% produces a fair value of ${fmt(r.fv)}.` : ''} This range must be disclosed under ASC 820-10-50-2(bbb) as the instrument is classified Level 3. Management's point estimate of ${fmt(r.fv)} should be assessed for reasonableness against this range.`;
 
-    conclusion = `The independently derived fair value of the convertible note as of ${date} is ${fmt(r.fv)}, comprising a debt component of ${fmt(r.pvDebt)} and an embedded option component of ${fmt(r.optVal)}. The valuation is classified as Level 3 under ASC 820 due to the use of unobservable inputs (discount rate and volatility). The auditor recommends: (1) challenging management's volatility assumption against a documented comparable company analysis; (2) obtaining independent support for the credit-adjusted discount rate; and (3) ensuring the sensitivity range ${range} is disclosed in the financial statement footnotes.`;
+    conclusion = `The independently derived fair value of the convertible note as of ${date} is ${fmt(r.fv)}, comprising a debt component of ${fmt(r.pvDebt)} and an embedded option component of ${fmt(r.optVal)}${r.dlom > 0 ? ` (post-${(r.dlom*100).toFixed(1)}% DLOM; pre-DLOM option value: ${fmt(r.optValRaw)})` : ''}. The valuation is classified as Level 3 under ASC 820 due to the use of unobservable inputs (discount rate, volatility${r.dlom > 0 ? ', and DLOM' : ''}). The auditor recommends: (1) challenging management's volatility assumption against a documented comparable company analysis; (2) obtaining independent support for the credit-adjusted discount rate;${r.dlom > 0 ? ` (3) obtaining quantitative model output or study data supporting the ${(r.dlom*100).toFixed(1)}% DLOM — management assertion alone is insufficient;` : ''} and (${r.dlom > 0 ? '4' : '3'}) ensuring the sensitivity range ${range} is disclosed in the financial statement footnotes.`;
 
   // ─── FX FORWARD ───
   } else if (r.instrument === 'FX Forward') {
@@ -1740,11 +1854,12 @@ This methodology is consistent with ASC 820-10-35-24A and reflects the exit pric
   Time to Expiry: ${T} years — Derived from contractual expiry date confirmed against ${date}.
   Risk-Free Rate: ${rfr}% — Continuous rate from Treasury yield curve for matching term. Observable (Level 2).
   Volatility: ${vol}% — ${sub === 'option-exchange' ? 'Implied volatility sourced from exchange option chain as of valuation date. Observable (Level 2).' : 'SIGNIFICANT LEVEL 3 INPUT. Historical or implied volatility — auditor must document methodology and comparable data sources. For private companies, peer group analysis required.'}
-  Dividend Yield: ${div}% — ${parseFloat(div) === 0 ? 'Not applicable; issuer does not pay dividends.' : 'Sourced from dividend announcements or Bloomberg consensus.'}`;
+  Dividend Yield: ${div}% — ${parseFloat(div) === 0 ? 'Not applicable; issuer does not pay dividends.' : 'Sourced from dividend announcements or Bloomberg consensus.'}
+  DLOM: ${r.dlom > 0 ? (r.dlom*100).toFixed(1)+'% — SIGNIFICANT LEVEL 3 INPUT. Applied to the full option fair value as a marketability reduction. Dollar adjustment: −'+fmt(r.dlomAdj * r.qty * r.multiplier)+'. Basis: '+r.dlomBasis+'. Pre-DLOM B-S value: '+fmt(r.bsValRaw * r.qty * r.multiplier)+'; post-DLOM: '+fmt(r.fv)+'. Auditor must obtain quantitative support — model output (Finnerty, Longstaff) or documented restricted stock/pre-IPO study. Management assertion alone is insufficient for Level 3 input support.' : '0% — Not applied. Instrument is exchange-traded or DLOM assessed as not applicable.'}`;
 
-    sensNarrative = `Volatility sensitivity analysis was performed across ±15% scenarios. The resulting fair value range is ${range}. ${r.level === 3 ? 'As a Level 3 instrument, this range must be disclosed under ASC 820-10-50-2(bbb).' : 'The Black-Scholes and Monte Carlo results are closely aligned, supporting model reliability.'} The Delta of ${fmtN(r.delta,4)} indicates that a $1 move in the underlying would change fair value by approximately ${fmt(r.delta * r.qty * r.multiplier)}.`;
+    sensNarrative = `Volatility sensitivity analysis was performed across ±15% scenarios. The resulting fair value range is ${range}. ${r.level === 3 ? 'As a Level 3 instrument, this range must be disclosed under ASC 820-10-50-2(bbb).' : 'The Black-Scholes and Monte Carlo results are closely aligned, supporting model reliability.'} The Delta of ${fmtN(r.delta,4)} indicates that a $1 move in the underlying would change fair value by approximately ${fmt(r.delta * r.qty * r.multiplier)}.${r.dlom > 0 ? ` A DLOM sensitivity analysis was also performed: fair value ranges from ${fmt(r.dlomSens[0].val)} (0% DLOM) to ${fmt(r.dlomSens[r.dlomSens.length-1].val)} (35% DLOM). The applied ${(r.dlom*100).toFixed(1)}% DLOM produces a fair value of ${fmt(r.fv)}.` : ''}`;
 
-    conclusion = `The independently derived fair value of the ${subLabel} position as of ${date} is ${fmt(r.fv)} (Black-Scholes), corroborated by a Monte Carlo estimate of ${fmt(r.mcFv)}. The instrument is classified ASC 820 ${levelLabels[r.level]}. ${r.level === 3 ? 'The auditor recommends obtaining management\'s support for the volatility assumption and documenting the comparable company selection process. Sensitivity disclosures are required.' : 'Inputs are primarily observable; classification is appropriate provided the volatility source is documented.'} The auditor found no material discrepancy between the entity\'s reported fair value and this independent calculation, subject to confirmation of all inputs listed above.`;
+    conclusion = `The independently derived fair value of the ${subLabel} position as of ${date} is ${fmt(r.fv)} (Black-Scholes${r.dlom > 0 ? `, post-${(r.dlom*100).toFixed(1)}% DLOM` : ''}), corroborated by a Monte Carlo estimate of ${fmt(r.mcFv)}. The instrument is classified ASC 820 ${levelLabels[r.level]}. ${r.level === 3 ? `The auditor recommends obtaining management's support for the volatility assumption and documenting the comparable company selection process.${r.dlom > 0 ? ` Additionally, the DLOM of ${(r.dlom*100).toFixed(1)}% requires independent quantitative support — obtain the model output or study underlying this estimate and assess whether the selected percentage falls within the range indicated by the analysis. DLOM disclosures are required under ASC 820-10-50-2(bbb).` : ' Sensitivity disclosures are required.'}` : 'Inputs are primarily observable; classification is appropriate provided the volatility source is documented.'} The auditor found no material discrepancy between the entity's reported fair value and this independent calculation, subject to confirmation of all inputs listed above.`;
   }
 
   // ── Assemble the full memo ──────────────────────────────────────────────
