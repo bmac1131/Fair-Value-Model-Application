@@ -3,7 +3,17 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Independent Valuation Model — ASC 820</title>
+<title>Arbiter IVM — ASC 820</title>
+<script>
+  // Session gate guard — redirect to validation harness if not validated this session
+  (function() {
+    const KEY = 'arbiter_validation_passed';
+    const VER = 'Arbiter-IVM-v1.2';
+    if (sessionStorage.getItem(KEY) !== VER) {
+      window.location.replace('model-validation.html');
+    }
+  })();
+</script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
 
@@ -368,14 +378,14 @@
 
 <header class="header">
   <div class="header-left">
-    <div class="logo">IVM</div>
+    <div class="logo">ARB</div>
     <div>
-      <div class="header-title">Independent Valuation Model</div>
+      <div class="header-title">Arbiter IVM</div>
       <div class="header-sub">ASC 820 · Fair Value Measurement</div>
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:8px;">
-    <a href="model-validation.html" target="_blank" style="
+    <a href="model-validation.html" style="
       background:var(--surface3); border:1px solid var(--border);
       border-radius:4px; padding:5px 12px;
       font-family:var(--mono); font-size:11px; color:var(--text2);
@@ -946,7 +956,7 @@
 // =====================================================
 // VERSION & REPRODUCIBILITY
 // =====================================================
-const MODEL_VERSION = 'IVM-v1.2';
+const MODEL_VERSION = 'Arbiter-IVM-v1.2';
 const MC_SEED = 20240101; // Fixed seed — DO NOT CHANGE without updating version
 
 // Seeded pseudo-random number generator (Mulberry32)
@@ -966,6 +976,20 @@ function makeRNG(seed) {
 let currentInstrument = 'swap';
 let lastResults = null;
 
+// Load acknowledgement data from validation gate session
+let ackData = {};
+try { ackData = JSON.parse(sessionStorage.getItem('arbiter_ack_data') || '{}'); } catch(e) {}
+
+// Maps panel keys → gate instrument labels
+const INSTRUMENT_ACK_MAP = {
+  swap:        'Interest Rate Swap',
+  forward:     'Forward Contract',
+  fxfwd:       'FX Forward',
+  future:      'Futures Contract',
+  convertible: 'Convertible Note',
+  option:      'Options / Warrants',
+};
+
 // Set today's date
 document.getElementById('val-date').valueAsDate = new Date();
 document.getElementById('timestamp').textContent = new Date().toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'});
@@ -982,6 +1006,26 @@ function switchInstrument(name) {
   document.getElementById('memo-section').style.display = 'none';
   document.getElementById('variance-section').style.display = 'none';
   document.getElementById('sourcing-section').style.display = 'none';
+
+  // Show/hide ack warning banner for this instrument
+  const ackLabel = INSTRUMENT_ACK_MAP[name];
+  const ack = ackLabel ? ackData[ackLabel] : null;
+  let banner = document.getElementById('ack-warning-banner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'ack-warning-banner';
+    banner.style.cssText = 'display:none;margin-bottom:16px;padding:14px 18px;background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.35);border-left:4px solid var(--yellow);border-radius:6px;font-size:12px;color:var(--yellow);line-height:1.7;';
+    const mainInner = document.querySelector('.main-inner');
+    if (mainInner) mainInner.prepend(banner);
+  }
+  if (ack) {
+    banner.style.display = 'block';
+    banner.innerHTML = `<strong style="font-family:var(--mono);font-size:10px;letter-spacing:1px;display:block;margin-bottom:6px;">⚠ VALIDATION ACKNOWLEDGEMENT ACTIVE — ${ackLabel.toUpperCase()}</strong>
+      One or more Tier 2/3 validation tests affecting ${ackLabel} did not pass this session. You acknowledged this at the gate. Acknowledgement: <em>"${ack.text}"</em>
+      <span style="display:block;font-size:10px;opacity:0.7;margin-top:4px;">Acknowledged ${new Date(ack.timestamp).toLocaleString()} · This note is embedded in the generated audit memo.</span>`;
+  } else {
+    banner.style.display = 'none';
+  }
 }
 
 // =====================================================
@@ -1341,7 +1385,7 @@ function renderVariancePanel(data) {
   const html = `
     <div class="variance-row">
       <div class="variance-card">
-        <div class="result-label">AUDITOR FV (IVM)</div>
+        <div class="result-label">AUDITOR FV (ARBITER)</div>
         <div class="result-value ${data.fv >= 0 ? 'green' : 'red'}">${fmt(data.fv)}</div>
         <div class="result-sub">${MODEL_VERSION}</div>
       </div>
@@ -1884,6 +1928,23 @@ This methodology is consistent with ASC 820-10-35-24A and reflects the exit pric
     conclusion = `The independently derived fair value of the ${subLabel} position as of ${date} is ${fmt(r.fv)} (Black-Scholes${r.dlom > 0 ? `, post-${(r.dlom*100).toFixed(1)}% DLOM` : ''}), corroborated by a Monte Carlo estimate of ${fmt(r.mcFv)}. The instrument is classified ASC 820 ${levelLabels[r.level]}. ${r.level === 3 ? `The auditor recommends obtaining management's support for the volatility assumption and documenting the comparable company selection process.${r.dlom > 0 ? ` Additionally, the DLOM of ${(r.dlom*100).toFixed(1)}% requires independent quantitative support — obtain the model output or study underlying this estimate and assess whether the selected percentage falls within the range indicated by the analysis. DLOM disclosures are required under ASC 820-10-50-2(bbb).` : ' Sensitivity disclosures are required.'}` : 'Inputs are primarily observable; classification is appropriate provided the volatility source is documented.'} The auditor found no material discrepancy between the entity's reported fair value and this independent calculation, subject to confirmation of all inputs listed above.`;
   }
 
+  // Validation acknowledgement block for memo
+  const ackLabel = INSTRUMENT_ACK_MAP[currentInstrument];
+  const ackEntry = ackLabel ? ackData[ackLabel] : null;
+  const ackBlock = ackEntry
+    ? `────────────────────────────────────────────────────────────────
+0. VALIDATION ACKNOWLEDGEMENT
+────────────────────────────────────────────────────────────────
+One or more Tier 2/3 validation tests affecting ${ackLabel} did not pass at the time of this engagement. The preparer acknowledged this limitation at the session gate before accessing the model.
+
+Acknowledgement provided: "${ackEntry.text}"
+Acknowledged: ${new Date(ackEntry.timestamp).toLocaleString()}
+
+The preparer has confirmed that the failed test(s) do not materially affect the reliability of the valuation output for this specific instrument and engagement. This acknowledgement must be reviewed by the independent reviewer named in the sign-off section below.
+
+`
+    : '';
+
   // ── Assemble the full memo ──────────────────────────────────────────────
   const memo = `════════════════════════════════════════════════════════════════
   AUDIT WORKING PAPER — FAIR VALUE MEASUREMENT
@@ -1898,8 +1959,11 @@ Prepared by       :  ${src.preparer}${src.role ? ' — ' + src.role : ''}
 Independent Review:  ${src.reviewer || 'N/A'}
 Model Version     :  ${src.version}
 MC Seed (fixed)   :  ${src.seed} — results reproducible
+Validation Status :  ${ackEntry ? '⚠ Partial — see Section 0' : '✓ All tests passed'}
 ASC 820 Level     :  ${levelLabels[r.level]}
 Fair Value        :  ${fmt(r.fv)}
+
+${ackBlock}
 
 ────────────────────────────────────────────────────────────────
 1. PURPOSE AND SCOPE
@@ -1948,7 +2012,7 @@ ${sensNarrative}
 ────────────────────────────────────────────────────────────────
 7. MODEL LIMITATIONS
 ────────────────────────────────────────────────────────────────
-The IVM (${src.version}) does not model: American-style early exercise premiums, barrier or path-dependent options, inflation-linked instruments, credit default swaps, illiquidity discounts, or bid-ask spread adjustments. Where any of these features are present in the instrument under review, this model's output should not be used without supplemental analysis.
+The Arbiter IVM (${src.version}) does not model: American-style early exercise premiums, barrier or path-dependent options, inflation-linked instruments, credit default swaps, illiquidity discounts, or bid-ask spread adjustments. Where any of these features are present in the instrument under review, this model's output should not be used without supplemental analysis.
 
 Monte Carlo results use a fixed seed (${src.seed}) to ensure full reproducibility. Black-Scholes is the primary valuation output; Monte Carlo serves as a corroborating cross-check.
 
@@ -1957,7 +2021,7 @@ Monte Carlo results use a fixed seed (${src.seed}) to ensure full reproducibilit
 ────────────────────────────────────────────────────────────────
 ${mgmtVal !== null
   ? `Management's Reported Fair Value : ${fmt(mgmtVal)}
-Auditor's Independent FV (IVM)   : ${fmt(r.fv)}
+Auditor's Independent FV (Arbiter)  : ${fmt(r.fv)}
 Variance (Auditor − Management)  : ${varAbs >= 0 ? '+' : ''}${fmt(varAbs)} (${varPct !== null ? (varPct >= 0 ? '+' : '') + varPct.toFixed(2) + '%' : 'N/A'})
 Materiality Threshold            : ${matVal !== null ? fmt(matVal) : 'Not set'}
 Assessment                       : ${matVal !== null
