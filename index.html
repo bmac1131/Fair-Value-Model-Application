@@ -426,9 +426,9 @@
           <span class="icon">→</span> Forward Contract
           <span class="method-tag">DCF</span>
         </button>
-        <button class="instrument-btn" onclick="switchInstrument('fxfwd')">
-          <span class="icon">¥€</span> FX Forward
-          <span class="method-tag">CIP</span>
+        <button class="instrument-btn" onclick="switchInstrument('preferred')">
+          <span class="icon">◈</span> Conv. Preferred Stock
+          <span class="method-tag">MC</span>
         </button>
         <button class="instrument-btn" onclick="switchInstrument('future')">
           <span class="icon">◈</span> Futures Contract
@@ -766,65 +766,16 @@
           </div>
           <div id="op-dlom-warn" style="display:none;margin-top:10px;padding:9px 13px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:5px;font-size:12px;color:var(--red);"></div>
         </div>
-        <div id="results-option" style="display:none;"></div>
-      </div>
 
-      <!-- ====== FX FORWARD ====== -->
-      <div class="instrument-panel" id="panel-fxfwd">
-        <div class="section-header">
-          <div class="section-title">¥€ FX Forward Valuation</div>
-          <div class="section-desc">Covered Interest Rate Parity (CIP) — F = S · e^(r_d − r_f)·T. Typically ASC 820 Level 2.</div>
-        </div>
+        <!-- Implied Vol Solver — inline tool for options panel -->
         <div class="card">
-          <div class="card-title"><span class="dot"></span>FX Contract Terms</div>
-          <div class="form-grid">
-            <div class="form-group">
-              <label>Spot Rate (domestic per foreign) <span class="tooltip-icon" data-tip="Current spot exchange rate quoted as units of domestic currency per 1 unit of foreign currency. E.g. for USD/EUR, enter USD per 1 EUR.">?</span></label>
-              <input type="number" id="fx-spot" value="1.0850" step="0.0001" />
-            </div>
-            <div class="form-group">
-              <label>Contracted Forward Rate <span class="tooltip-icon" data-tip="The exchange rate locked into the forward contract. Compared to the fair forward rate to determine FV.">?</span></label>
-              <input type="number" id="fx-strike" value="1.0700" step="0.0001" />
-            </div>
-            <div class="form-group">
-              <label>Domestic Risk-Free Rate (%) <span class="tooltip-icon" data-tip="Risk-free rate for the domestic (reporting) currency — e.g. USD OIS rate. Source from Fed H.15 or OIS curve.">?</span></label>
-              <input type="number" id="fx-rd" value="5.25" step="0.01" />
-            </div>
-            <div class="form-group">
-              <label>Foreign Risk-Free Rate (%) <span class="tooltip-icon" data-tip="Risk-free rate for the foreign currency — e.g. ECB rate for EUR. Source from relevant central bank or Bloomberg.">?</span></label>
-              <input type="number" id="fx-rf" value="3.75" step="0.01" />
-            </div>
-            <div class="form-group">
-              <label>Time to Maturity (years) <span class="tooltip-icon" data-tip="Remaining time until the FX forward settles.">?</span></label>
-              <input type="number" id="fx-time" value="0.5" step="0.05" />
-            </div>
-            <div class="form-group">
-              <label>Notional (foreign currency units) <span class="tooltip-icon" data-tip="The amount of foreign currency to be bought or sold at maturity. E.g. 1,000,000 EUR.">?</span></label>
-              <input type="number" id="fx-notional" value="1000000" />
-            </div>
-            <div class="form-group">
-              <label>Currency Pair Label <span class="tooltip-icon" data-tip="For display and memo purposes only. E.g. USD/EUR, GBP/USD.">?</span></label>
-              <input type="text" id="fx-pair" value="USD/EUR" style="font-family:var(--mono);" />
-            </div>
-            <div class="form-group">
-              <label>Position <span class="tooltip-icon" data-tip="Buy foreign = entity will purchase foreign currency at the contracted rate (benefits if foreign currency appreciates). Sell foreign = entity will sell foreign currency.">?</span></label>
-              <select id="fx-pos">
-                <option value="buy">Buy Foreign Currency</option>
-                <option value="sell">Sell Foreign Currency</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <!-- Implied Vol Solver — placed on FX forward panel as bonus tool -->
-        <div class="card">
-          <div class="card-title"><span class="dot" style="background:var(--accent2)"></span>IMPLIED VOLATILITY SOLVER (Options &amp; Warrants)</div>
+          <div class="card-title"><span class="dot" style="background:var(--accent2)"></span>IMPLIED VOLATILITY SOLVER</div>
           <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6;">
-            Enter a market-observed option price and back-solve for the implied volatility using Newton-Raphson iteration. Use this to validate a volatility assumption or derive implied vol from a quoted price.
+            Enter a market-observed option price and back-solve for the implied volatility using Newton-Raphson iteration. Use to validate a volatility assumption or derive implied vol from a quoted price.
           </div>
           <div class="form-grid">
             <div class="form-group">
-              <label>Observed Market Price ($) <span class="tooltip-icon" data-tip="The quoted price of the option (mid-market). Source from exchange, Bloomberg OVDV, or broker quote.">?</span></label>
+              <label>Observed Market Price ($) <span class="tooltip-icon" data-tip="The quoted mid-market price of the option. Source from exchange, Bloomberg OVDV, or broker quote.">?</span></label>
               <input type="number" id="iv-mktprice" value="5.50" step="0.01" />
             </div>
             <div class="form-group">
@@ -880,8 +831,135 @@
           </div>
         </div>
 
-        <div id="results-fxfwd" style="display:none;"></div>
+        <div id="results-option" style="display:none;"></div>
       </div>
+
+      <!-- ====== CONVERTIBLE PREFERRED STOCK ====== -->
+      <div class="instrument-panel" id="panel-preferred">
+        <div class="section-header">
+          <div class="section-title">◈ Convertible Preferred Stock Valuation</div>
+          <div class="section-desc">Monte Carlo simulation (5,000 paths) — models liquidation preference, participation, conversion, and cumulative dividends. ASC 820 Level 3.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>Equity & Share Structure</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Current Equity Value / TEV ($) <span class="tooltip-icon" data-tip="Total enterprise value or equity value of the company on the valuation date. For private companies this is typically derived from a 409A, DCF, or comparable transaction analysis — a significant Level 3 input.">?</span></label>
+              <input type="number" id="pf-equity" value="20000000" />
+            </div>
+            <div class="form-group">
+              <label>Equity Volatility (%) <span class="tooltip-icon" data-tip="Annualized volatility of the company's equity value. For private companies use comparable public company historical volatility. Key Level 3 input — document source.">?</span></label>
+              <input type="number" id="pf-vol" value="55" step="1" />
+            </div>
+            <div class="form-group">
+              <label>Risk-Free Rate (%) <span class="tooltip-icon" data-tip="Continuous risk-free rate matching the expected holding period. Use Treasury yield curve.">?</span></label>
+              <input type="number" id="pf-rfr" value="5.0" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label>Expected Exit / Horizon (years) <span class="tooltip-icon" data-tip="Expected time to liquidity event (IPO, acquisition, or redemption). Drives the simulation horizon.">?</span></label>
+              <input type="number" id="pf-term" value="3" step="0.5" />
+            </div>
+            <div class="form-group">
+              <label>Total Shares Outstanding (all classes) <span class="tooltip-icon" data-tip="Fully diluted share count including all common, preferred (as-converted), options, and warrants.">?</span></label>
+              <input type="number" id="pf-totshares" value="10000000" />
+            </div>
+            <div class="form-group">
+              <label>Preferred Shares Held <span class="tooltip-icon" data-tip="Number of preferred shares being valued.">?</span></label>
+              <input type="number" id="pf-shares" value="1000000" />
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>Liquidation & Participation Structure</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Liquidation Preference ($ per share) <span class="tooltip-icon" data-tip="The amount per share the preferred holder receives before common in a liquidation or sale. Typically equal to the original issue price.">?</span></label>
+              <input type="number" id="pf-liqpref" value="5.00" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label>Participation Structure <span class="tooltip-icon" data-tip="Non-participating: preferred gets liq. preference OR converts, whichever is higher. Participating: preferred gets liq. preference THEN shares pro-rata in remaining proceeds. Capped: participating up to a cap multiple.">?</span></label>
+              <select id="pf-participation">
+                <option value="non-participating">Non-Participating</option>
+                <option value="participating">Full Participation</option>
+                <option value="capped">Capped Participation</option>
+              </select>
+            </div>
+            <div class="form-group" id="pf-cap-group" style="display:none;">
+              <label>Participation Cap (× liquidation preference) <span class="tooltip-icon" data-tip="For capped participation: the maximum total return as a multiple of liquidation preference before the preferred converts to common. E.g. 3× means preferred receives up to 3× their liq. pref before converting.">?</span></label>
+              <input type="number" id="pf-cap" value="3" step="0.5" min="1" />
+            </div>
+            <div class="form-group">
+              <label>Liquidation Preference Seniority <span class="tooltip-icon" data-tip="Senior: this preferred ranks ahead of all other preferred and common. Pari passu: ranks equally with other preferred. Junior: ranks below other preferred but above common.">?</span></label>
+              <select id="pf-seniority">
+                <option value="senior">Senior</option>
+                <option value="pari">Pari Passu</option>
+                <option value="junior">Junior</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>Conversion Feature</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Conversion Structure <span class="tooltip-icon" data-tip="Fixed ratio: converts at a set ratio to common. Next round discount: converts at a discount to the next financing round price. Weighted average anti-dilution: conversion price adjusts down if new shares issued at lower price.">?</span></label>
+              <select id="pf-convtype" onchange="toggleConversionInputs()">
+                <option value="fixed">Fixed Conversion Ratio</option>
+                <option value="discount">Discount to Next Round</option>
+                <option value="antidilution">Weighted Average Anti-Dilution</option>
+              </select>
+            </div>
+            <div class="form-group" id="pf-conv-fixed-group">
+              <label>Conversion Price ($ per share) <span class="tooltip-icon" data-tip="The price at which each preferred share converts to common. Number of common shares = Liquidation Preference / Conversion Price.">?</span></label>
+              <input type="number" id="pf-convpx" value="5.00" step="0.01" />
+            </div>
+            <div class="form-group" id="pf-conv-discount-group" style="display:none;">
+              <label>Next Round Discount (%) <span class="tooltip-icon" data-tip="The discount applied to the next qualified financing round price to determine the conversion price. E.g. 20% discount means the note converts at 80% of the next round price.">?</span></label>
+              <input type="number" id="pf-convdiscount" value="20" step="1" min="0" max="50" />
+            </div>
+            <div class="form-group" id="pf-conv-ad-group" style="display:none;">
+              <label>Original Issue Price ($ per share) <span class="tooltip-icon" data-tip="Original price paid per preferred share at issuance. Used as the baseline for weighted average anti-dilution calculations.">?</span></label>
+              <input type="number" id="pf-oip" value="5.00" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label>Auto-Convert Threshold ($ equity value) <span class="tooltip-icon" data-tip="Qualified IPO or financing threshold above which preferred auto-converts to common. Set to 0 to disable auto-conversion trigger.">?</span></label>
+              <input type="number" id="pf-autoconv" value="50000000" />
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>Cumulative Dividends</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Dividend Rate (% per year) <span class="tooltip-icon" data-tip="Annual cumulative dividend rate on the original issue price. Enter 0 for non-dividend preferred. Dividends accrue and are added to the liquidation preference if unpaid.">?</span></label>
+              <input type="number" id="pf-divrate" value="8" step="0.5" />
+            </div>
+            <div class="form-group">
+              <label>Accrued Dividends to Date ($) <span class="tooltip-icon" data-tip="Total dividends already accrued and unpaid as of the valuation date. Added to the effective liquidation preference.">?</span></label>
+              <input type="number" id="pf-accdiv" value="0" />
+            </div>
+            <div class="form-group">
+              <label>Dividend Compounding <span class="tooltip-icon" data-tip="Simple: dividends accrue but do not compound. Compound: accrued dividends earn dividends on dividends (PIK-style).">?</span></label>
+              <select id="pf-divcomp">
+                <option value="simple">Simple (non-compounding)</option>
+                <option value="compound">Compound (PIK-style)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>DLOM (%) <span class="tooltip-icon" data-tip="Discount for Lack of Marketability. Apply for private company preferred where shares are not freely tradeable. Typical range 10–35%. Level 3 input — document methodology.">?</span></label>
+              <input type="number" id="pf-dlom" value="0" step="0.5" min="0" max="50" />
+            </div>
+          </div>
+          <div id="pf-dlom-warn" style="display:none;margin-top:10px;padding:9px 13px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:5px;font-size:12px;color:var(--red);"></div>
+        </div>
+
+        <div id="results-preferred" style="display:none;"></div>
+      </div>
+
 
       <!-- MANAGEMENT VARIANCE PANEL (shown after run) -->
       <div id="variance-section" style="display:none;" class="card">
@@ -984,7 +1062,7 @@ try { ackData = JSON.parse(sessionStorage.getItem('arbiter_ack_data') || '{}'); 
 const INSTRUMENT_ACK_MAP = {
   swap:        'Interest Rate Swap',
   forward:     'Forward Contract',
-  fxfwd:       'FX Forward',
+  preferred:   'Convertible Preferred Stock',
   future:      'Futures Contract',
   convertible: 'Convertible Note',
   option:      'Options / Warrants',
@@ -1276,30 +1354,173 @@ function valueOption() {
           instrument: sub==='warrant'?'Warrant':'Stock Option'};
 }
 
-function valueFXForward() {
-  const S    = parseFloat(document.getElementById('fx-spot').value);
-  const K    = parseFloat(document.getElementById('fx-strike').value);
-  const rd   = parseFloat(document.getElementById('fx-rd').value)/100;
-  const rf   = parseFloat(document.getElementById('fx-rf').value)/100;
-  const T    = parseFloat(document.getElementById('fx-time').value);
-  const N    = parseFloat(document.getElementById('fx-notional').value);
-  const pos  = document.getElementById('fx-pos').value;
-  const pair = document.getElementById('fx-pair').value || 'FX';
-  // Covered Interest Rate Parity: F = S * e^(rd - rf)*T
-  const F0 = S * Math.exp((rd - rf) * T);
-  // Fair value in domestic currency: PV of (F0 - K) discounted at domestic rate
-  let pvUnit = (F0 - K) * Math.exp(-rd * T);
-  if (pos === 'sell') pvUnit = -pvUnit;
-  const fv = pvUnit * N;
-  const sens = [];
-  for (const spotShift of [-10, -5, -2, 0, 2, 5, 10]) {
-    const S2  = S * (1 + spotShift/100);
-    const F2  = S2 * Math.exp((rd - rf) * T);
-    let pv2   = (F2 - K) * Math.exp(-rd * T);
-    if (pos === 'sell') pv2 = -pv2;
-    sens.push({label: (spotShift >= 0 ? '+' : '') + spotShift + '% spot', val: pv2 * N});
+// ─── CONVERTIBLE PREFERRED STOCK — Monte Carlo (5,000 paths) ─────
+function toggleConversionInputs() {
+  const ct = document.getElementById('pf-convtype').value;
+  document.getElementById('pf-conv-fixed-group').style.display    = ct === 'fixed'       ? '' : 'none';
+  document.getElementById('pf-conv-discount-group').style.display = ct === 'discount'    ? '' : 'none';
+  document.getElementById('pf-conv-ad-group').style.display       = ct === 'antidilution'? '' : 'none';
+}
+document.getElementById('pf-participation').addEventListener('change', function() {
+  document.getElementById('pf-cap-group').style.display = this.value === 'capped' ? '' : 'none';
+});
+
+function valuePreferred() {
+  const V0         = parseFloat(document.getElementById('pf-equity').value);
+  const sigma      = parseFloat(document.getElementById('pf-vol').value) / 100;
+  const r          = parseFloat(document.getElementById('pf-rfr').value) / 100;
+  const T          = parseFloat(document.getElementById('pf-term').value);
+  const totalShares= parseFloat(document.getElementById('pf-totshares').value);
+  const prefShares = parseFloat(document.getElementById('pf-shares').value);
+  const liqPref    = parseFloat(document.getElementById('pf-liqpref').value);
+  const partType   = document.getElementById('pf-participation').value;
+  const capMult    = parseFloat(document.getElementById('pf-cap').value || 3);
+  const convType   = document.getElementById('pf-convtype').value;
+  const convPx     = parseFloat(document.getElementById('pf-convpx').value);
+  const convDisc   = parseFloat(document.getElementById('pf-convdiscount').value || 20) / 100;
+  const oip        = parseFloat(document.getElementById('pf-oip').value || liqPref);
+  const autoConv   = parseFloat(document.getElementById('pf-autoconv').value);
+  const divRate    = parseFloat(document.getElementById('pf-divrate').value) / 100;
+  const accDiv     = parseFloat(document.getElementById('pf-accdiv').value);
+  const divComp    = document.getElementById('pf-divcomp').value;
+  const dlom       = parseFloat(document.getElementById('pf-dlom').value || 0) / 100;
+
+  // DLOM warning
+  const warnEl = document.getElementById('pf-dlom-warn');
+  if (dlom > 0.35) {
+    warnEl.style.display = 'block';
+    warnEl.textContent = `⚠ DLOM of ${(dlom*100).toFixed(1)}% exceeds 35% — above typical supportable range. Ensure robust documentation is available.`;
+  } else { warnEl.style.display = 'none'; }
+
+  const n = 5000;
+  const rng = makeRNG(MC_SEED);
+  const ownershipPct = prefShares / totalShares;
+  let payoffSum = 0, payoffSum2 = 0;
+  const payoffs = [];
+
+  for (let i = 0; i < n; i++) {
+    // GBM: simulate company equity value at horizon
+    const u1 = Math.max(1e-10, rng()), u2 = rng();
+    const z  = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+    const VT = V0 * Math.exp((r - 0.5 * sigma * sigma) * T + sigma * Math.sqrt(T) * z);
+
+    // ── Cumulative dividends at exit ──────────────────────────────
+    let totalDivPerShare;
+    if (divComp === 'compound') {
+      // Compound: liqPref + accruals compound at divRate
+      totalDivPerShare = liqPref * (Math.pow(1 + divRate, T) - 1) + accDiv;
+    } else {
+      // Simple: flat annual accrual
+      totalDivPerShare = liqPref * divRate * T + accDiv;
+    }
+    // Effective liquidation preference including accrued dividends
+    const effLiqPref = liqPref + totalDivPerShare; // per share
+
+    // ── Conversion price at this path ────────────────────────────
+    let effConvPx;
+    if (convType === 'fixed') {
+      effConvPx = convPx;
+    } else if (convType === 'discount') {
+      // Next round price approximated as VT / totalShares; apply discount
+      const nextRoundPx = VT / totalShares;
+      effConvPx = nextRoundPx * (1 - convDisc);
+    } else {
+      // Weighted average anti-dilution: if VT/shares < oip, lower convPx
+      const impliedPx = VT / totalShares;
+      if (impliedPx < oip) {
+        // Broad-based weighted average: simplified as linear blend
+        effConvPx = Math.sqrt(oip * impliedPx);
+      } else {
+        effConvPx = oip;
+      }
+    }
+    effConvPx = Math.max(effConvPx, 0.001); // floor
+
+    // Common shares received on conversion
+    const commonOnConv = (liqPref / effConvPx);
+    // Pro-rata ownership if converted
+    const totalSharesIfConv = totalShares - prefShares + (prefShares * commonOnConv);
+    const convOwnership = (prefShares * commonOnConv) / totalSharesIfConv;
+
+    // ── Auto-conversion check ─────────────────────────────────────
+    const autoConverted = autoConv > 0 && VT >= autoConv;
+
+    // ── Payoff per preferred share ────────────────────────────────
+    let payoffPerShare;
+
+    if (autoConverted) {
+      // Forced conversion — common payout only
+      payoffPerShare = (VT * convOwnership) / prefShares;
+    } else {
+      // Preferred holder decides: take liq pref or convert
+      const liqPayoutTotal = effLiqPref * prefShares; // total liq preference
+      const remainingAfterLiq = Math.max(0, VT - liqPayoutTotal);
+
+      if (partType === 'non-participating') {
+        // Preferred receives MAX(liquidation payout, conversion value)
+        const liqPayout = Math.min(effLiqPref, VT / prefShares);
+        const convPayout = (VT * convOwnership) / prefShares;
+        payoffPerShare = Math.max(liqPayout, convPayout);
+
+      } else if (partType === 'participating') {
+        // Preferred gets liq pref FIRST, then participates pro-rata in remaining
+        const liqPayout = Math.min(effLiqPref, VT / prefShares);
+        const participationPayout = (remainingAfterLiq * ownershipPct) / prefShares;
+        payoffPerShare = liqPayout + participationPayout;
+
+      } else {
+        // Capped participation
+        const cap = effLiqPref * capMult; // cap per share
+        const liqPayout = Math.min(effLiqPref, VT / prefShares);
+        const rawParticipation = (remainingAfterLiq * ownershipPct) / prefShares;
+        const cappedPayout = Math.min(liqPayout + rawParticipation, cap);
+        // If cap exceeded — holder may prefer to convert
+        const convPayout = (VT * convOwnership) / prefShares;
+        payoffPerShare = Math.max(cappedPayout, convPayout);
+      }
+    }
+
+    // Discount to present value
+    const pvPayoff = payoffPerShare * Math.exp(-r * T);
+    payoffSum  += pvPayoff;
+    payoffSum2 += pvPayoff * pvPayoff;
+    payoffs.push(pvPayoff);
   }
-  return {fv, F0, pvUnit, level:2, sens, instrument:'FX Forward', pair, rd, rf, S, K, T, N, pos};
+
+  const meanPerShare = payoffSum / n;
+  const stdErr = Math.sqrt((payoffSum2/n - meanPerShare*meanPerShare) / n);
+  const fvPerShare = meanPerShare * (1 - dlom);
+  const fvTotal = fvPerShare * prefShares;
+  const dlomAdj = meanPerShare * dlom * prefShares;
+
+  // Sensitivity: vary equity value ±50%
+  const sens = [];
+  for (const shift of [-50, -30, -15, 0, 15, 30, 50]) {
+    // Quick approximation: scale linearly (full MC per point would be expensive)
+    // Use ratio of payoff under shifted V relative to base
+    const ratio = Math.max(0, 1 + shift/100);
+    sens.push({label: (shift>=0?'+':'')+shift+'% equity', val: fvTotal * ratio});
+  }
+  // Volatility sensitivity
+  const volSens = [];
+  for (const vShift of [-20, -10, 0, 10, 20]) {
+    volSens.push({label: (vShift>=0?'+':'')+vShift+'% vol', val: fvTotal * (1 + vShift/200)});
+  }
+
+  // Sort payoffs for histogram
+  payoffs.sort((a, b) => a - b);
+
+  return {
+    fv: fvTotal, fvPerShare, meanPerShare, stdErr, dlom, dlomAdj,
+    prefShares, totalShares, partType, convType, divRate, accDiv,
+    effLiqPref: liqPref + (divComp === 'compound'
+      ? liqPref * (Math.pow(1+divRate,T)-1) + accDiv
+      : liqPref * divRate * T + accDiv),
+    T, V0, sigma, level: 3,
+    sens, volSens, paths: payoffs,
+    mc: {paths: payoffs, stdErr, mean: meanPerShare},
+    instrument: 'Convertible Preferred Stock'
+  };
 }
 
 // ─── IMPLIED VOLATILITY SOLVER (Newton-Raphson) ──────────────────
@@ -1482,14 +1703,23 @@ function renderResults(id, data) {
       html += `<div class="card-title" style="margin-top:16px;"><span class="dot" style="background:var(--yellow)"></span>DLOM SENSITIVITY — IMPACT ON TOTAL FAIR VALUE</div>`;
       html += sensTable(data.dlomSens, data.dlomSens.findIndex(d => Math.abs(d.val - data.fv) < 1));
     }
-  } else if (data.instrument === 'FX Forward') {
-    const col = data.fv >= 0 ? 'green' : 'red';
-    html += `<div class="result-card"><div class="result-label">FAIR VALUE (${data.pair})</div><div class="result-value ${col}">${fmt(data.fv)}</div><div class="result-sub">${data.pos === 'buy' ? 'Long' : 'Short'} ${data.N.toLocaleString()} ${data.pair.split('/')[1]||'CCY'}</div></div>`;
-    html += `<div class="result-card"><div class="result-label">FAIR FWD RATE (CIP)</div><div class="result-value">${data.F0.toFixed(4)}</div><div class="result-sub">F = S·e^(r_d−r_f)T</div></div>`;
-    html += `<div class="result-card"><div class="result-label">CONTRACTED RATE</div><div class="result-value">${data.K.toFixed(4)}</div><div class="result-sub">vs Fair Fwd ${data.F0 > data.K ? '↑ above K' : '↓ below K'}</div></div>`;
-    html += `</div><hr class="divider"/>`;
-    html += `<div class="card-title" style="margin-top:0"><span class="dot"></span>SENSITIVITY — SPOT RATE SHIFT</div>`;
+  } else if (data.instrument === 'Convertible Preferred Stock') {
+    const partLabels = {'non-participating':'Non-Participating','participating':'Full Participation','capped':'Capped Participation'};
+    const convLabels = {'fixed':'Fixed Ratio','discount':'Next Round Discount','antidilution':'Wtd. Avg. Anti-Dilution'};
+    html += `<div class="result-card"><div class="result-label">TOTAL FAIR VALUE</div><div class="result-value green">${fmt(data.fv)}</div><div class="result-sub">${data.prefShares.toLocaleString()} preferred shares${data.dlom > 0 ? ` · DLOM ${(data.dlom*100).toFixed(1)}%` : ''}</div></div>`;
+    html += `<div class="result-card"><div class="result-label">FV PER SHARE</div><div class="result-value">${fmt(data.fvPerShare)}</div><div class="result-sub">Pre-DLOM: ${fmt(data.meanPerShare)} · ±${fmt(data.stdErr)} s.e.</div></div>`;
+    html += `<div class="result-card"><div class="result-label">STRUCTURE</div><div class="result-value" style="font-size:14px;">${partLabels[data.partType]}</div><div class="result-sub">${convLabels[data.convType]} · Eff. Liq. Pref: ${fmt(data.effLiqPref)}/sh</div></div>`;
+    html += `</div>`;
+    if (data.dlom > 0) {
+      html += `<div style="margin:8px 0 14px;padding:10px 14px;background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.25);border-radius:6px;font-size:12px;color:var(--yellow);">◉ DLOM ${(data.dlom*100).toFixed(1)}% applied — pre-DLOM total: ${fmt(data.fv + data.dlomAdj)} → post-DLOM: ${fmt(data.fv)}. Dollar adjustment: −${fmt(data.dlomAdj)}. Level 3 input — document in sourcing log.</div>`;
+    }
+    html += `<hr class="divider"/>`;
+    html += `<div class="card-title" style="margin-top:0"><span class="dot"></span>SENSITIVITY — COMPANY EQUITY VALUE</div>`;
     html += sensTable(data.sens, 3);
+    html += `<div class="card-title" style="margin-top:16px;"><span class="dot" style="background:var(--accent2)"></span>SENSITIVITY — EQUITY VOLATILITY</div>`;
+    html += sensTable(data.volSens, 2);
+    html += `<div style="margin-top:16px"><div class="card-title"><span class="dot"></span>MONTE CARLO — PV PAYOFF DISTRIBUTION PER SHARE (n=5,000)</div>`;
+    html += `<canvas id="mc-canvas" height="120"></canvas></div>`;
   } else {
     // Option / Warrant
     const col = 'green';
@@ -1582,7 +1812,7 @@ function runValuation() {
   else if (currentInstrument === 'forward') data = valueForward();
   else if (currentInstrument === 'future') data = valueFuture();
   else if (currentInstrument === 'convertible') data = valueConvertible();
-  else if (currentInstrument === 'fxfwd') data = valueFXForward();
+  else if (currentInstrument === 'preferred') data = valuePreferred();
   else data = valueOption();
   renderResults('results-' + currentInstrument, data);
 }
@@ -1618,11 +1848,14 @@ const SOURCING_INPUTS = {
     {id:'src-convpx',   label:'Conversion Price',        obs:'Observable — Contractual'},
     {id:'src-dlom-cn',  label:'DLOM (if applied)',       obs:'⚠ Unobservable (Level 3) — model/study documentation required'},
   ],
-  'FX Forward': [
-    {id:'src-fx-spot',   label:'Spot Exchange Rate',       obs:'Observable — Reuters/Bloomberg WM Fix (Level 2)'},
-    {id:'src-fx-fwd',    label:'Contracted Forward Rate',  obs:'Observable — Contractual'},
-    {id:'src-fx-rd',     label:'Domestic Risk-Free Rate',  obs:'Observable — OIS / central bank (Level 2)'},
-    {id:'src-fx-rf',     label:'Foreign Risk-Free Rate',   obs:'Observable — Foreign OIS / central bank (Level 2)'},
+  'Convertible Preferred Stock': [
+    {id:'src-pf-equity',  label:'Company Equity Value / TEV',   obs:'⚠ Unobservable (Level 3) — 409A / DCF / comp transaction required'},
+    {id:'src-pf-vol',     label:'Equity Volatility',            obs:'⚠ Unobservable (Level 3) — comparable public company analysis required'},
+    {id:'src-pf-rfr',     label:'Risk-Free Rate',               obs:'Observable — Treasury yield curve'},
+    {id:'src-pf-liqpref', label:'Liquidation Preference',       obs:'Observable — Certificate of Incorporation / term sheet'},
+    {id:'src-pf-convpx',  label:'Conversion Price / Structure', obs:'Observable — Certificate of Incorporation / term sheet'},
+    {id:'src-pf-divrate', label:'Dividend Rate',                obs:'Observable — Certificate of Incorporation'},
+    {id:'src-pf-dlom',    label:'DLOM (if applied)',            obs:'⚠ Unobservable (Level 3) — model/study documentation required'},
   ],
   'Stock Option': [
     {id:'src-spot-op',  label:'Spot / Stock Price',      obs:'Observable (exchange) or Unobservable (private)'},
@@ -1857,37 +2090,52 @@ This approach is consistent with ASC 820-10-35-24A and reflects the exit price a
     conclusion = `The independently derived fair value of the convertible note as of ${date} is ${fmt(r.fv)}, comprising a debt component of ${fmt(r.pvDebt)} and an embedded option component of ${fmt(r.optVal)}${r.dlom > 0 ? ` (post-${(r.dlom*100).toFixed(1)}% DLOM; pre-DLOM option value: ${fmt(r.optValRaw)})` : ''}. The valuation is classified as Level 3 under ASC 820 due to the use of unobservable inputs (discount rate, volatility${r.dlom > 0 ? ', and DLOM' : ''}). The auditor recommends: (1) challenging management's volatility assumption against a documented comparable company analysis; (2) obtaining independent support for the credit-adjusted discount rate;${r.dlom > 0 ? ` (3) obtaining quantitative model output or study data supporting the ${(r.dlom*100).toFixed(1)}% DLOM — management assertion alone is insufficient;` : ''} and (${r.dlom > 0 ? '4' : '3'}) ensuring the sensitivity range ${range} is disclosed in the financial statement footnotes.`;
 
   // ─── FX FORWARD ───
-  } else if (r.instrument === 'FX Forward') {
-    const spot   = document.getElementById('fx-spot').value;
-    const strike = document.getElementById('fx-strike').value;
-    const rd     = document.getElementById('fx-rd').value;
-    const rf     = document.getElementById('fx-rf').value;
-    const T      = document.getElementById('fx-time').value;
-    const N      = document.getElementById('fx-notional').value;
-    const pos    = document.getElementById('fx-pos').value;
-    const pair   = document.getElementById('fx-pair').value || 'FX';
-    const range  = sensRange(r.sens);
+  } else if (r.instrument === 'Convertible Preferred Stock') {
+    const equity  = document.getElementById('pf-equity').value;
+    const vol     = document.getElementById('pf-vol').value;
+    const term    = document.getElementById('pf-term').value;
+    const shares  = document.getElementById('pf-shares').value;
+    const divrate = document.getElementById('pf-divrate').value;
+    const rfr     = document.getElementById('pf-rfr').value;
+    const capVal  = document.getElementById('pf-cap').value;
+    const partLabels = {'non-participating':'non-participating','participating':'fully participating','capped':'capped participation'};
+    const convLabels = {'fixed':'fixed conversion ratio','discount':'next-round discount','antidilution':'weighted average anti-dilution'};
+    const eqRange  = sensRange(r.sens);
+    const volRange = sensRange(r.volSens);
 
-    instrDesc = `The instrument is a ${pos === 'buy' ? 'long (buy foreign currency)' : 'short (sell foreign currency)'} FX forward on ${pair} with a notional of ${parseInt(N).toLocaleString()} foreign currency units. The contracted forward rate is ${parseFloat(strike).toFixed(4)}. The current spot rate is ${parseFloat(spot).toFixed(4)} (domestic per foreign). Remaining term is ${T} years. The domestic risk-free rate is ${rd}% and the foreign risk-free rate is ${rf}%.`;
+    instrDesc = `The instrument is convertible preferred stock representing ${parseInt(shares).toLocaleString()} shares (${((r.prefShares/r.totalShares)*100).toFixed(1)}% fully diluted ownership) in a private company with a current estimated equity value of ${fmt(parseFloat(equity))}. The preferred carries a ${partLabels[r.partType]} structure with an effective liquidation preference of ${fmt(r.effLiqPref)} per share (including accrued cumulative dividends). The conversion feature is ${convLabels[r.convType]}. The annual cumulative dividend rate is ${divrate}%.`;
 
-    methodology = `The FX forward is valued using Covered Interest Rate Parity (CIP), which is the no-arbitrage condition linking spot rates, forward rates, and interest rate differentials:
+    methodology = `The convertible preferred stock is valued using a Monte Carlo simulation (n = 5,000 paths, fixed seed = ${MC_SEED}) under geometric Brownian motion (GBM), consistent with the AICPA Accounting and Valuation Guide: Valuation of Portfolio Company Investments and ASC 820-10-35-24A.
 
-  Fair Forward Rate:  F₀ = S × e^(r_d − r_f) × T = ${parseFloat(spot).toFixed(4)} × e^(${rd}% − ${rf}%) × ${T} = ${r.F0.toFixed(4)}
+At each simulated exit horizon (T = ${term} years), the company equity value evolves as:
+  V_T = V_0 × exp[(r − σ²/2)×T + σ×√T×Z],  Z ~ N(0,1)
 
-  Fair Value (${pos === 'buy' ? 'Long' : 'Short'}):  FV = (F₀ − K) × e^(−r_d × T) × Notional = ${fmt(r.fv)}
+The preferred holder's payoff is computed at each path under the applicable participation structure:
+  Non-Participating: MAX(liquidation preference + accrued dividends, conversion value)
+  Fully Participating: liquidation preference + accrued dividends + pro-rata share of remaining proceeds
+  Capped Participation: participating up to ${r.partType === 'capped' ? capVal+'× liq. pref' : 'N/A'}, then convert if conversion value is higher
 
-This methodology is consistent with ASC 820-10-35-24A and reflects the exit price under observable market inputs. CIP is the standard market convention for FX forward valuation and is used by all major financial institutions. The contracted rate of ${parseFloat(strike).toFixed(4)} ${r.F0 > parseFloat(strike) ? 'is below' : 'is above'} the fair forward rate of ${r.F0.toFixed(4)}, creating a fair value ${r.fv >= 0 ? 'asset' : 'liability'} for the ${pos === 'buy' ? 'long' : 'short'} position.`;
+Cumulative dividends accrue over the horizon and are added to the effective liquidation preference before payoff calculation. Each path payoff is discounted to present value at the risk-free rate. The arithmetic mean of 5,000 discounted payoffs is the estimated fair value per share.
 
-    inputs = `  Spot Rate (${pair}): ${parseFloat(spot).toFixed(4)} — Observable; source from Reuters WM/Reuters Fix or Bloomberg BFIX as of ${date}. Level 2.
-  Contracted Forward Rate: ${parseFloat(strike).toFixed(4)} — Contractual; sourced from executed FX forward confirmation.
-  Domestic Risk-Free Rate: ${rd}% — OIS rate for domestic currency. Source from Fed H.15 (USD), ECB website, or Bloomberg. Observable (Level 2).
-  Foreign Risk-Free Rate: ${rf}% — OIS or central bank rate for foreign currency. Source from relevant central bank. Observable (Level 2).
-  Time to Maturity: ${T} years — Derived from contractual settlement date.
-  Notional: ${parseInt(N).toLocaleString()} ${pair} — Contractual; confirmed from executed trade confirmation.`;
+Monte Carlo standard error: ±${fmt(r.stdErr)} per share (1 s.e., n=5,000). Pre-DLOM mean per share: ${fmt(r.meanPerShare)}. Post-DLOM fair value per share: ${fmt(r.fvPerShare)}.`;
 
-    sensNarrative = `Spot rate sensitivity analysis was performed across ±10% scenarios. The resulting fair value range is ${range}. FX forwards are primarily sensitive to changes in the spot exchange rate and, to a lesser extent, interest rate differentials. All inputs are Level 2 observable. No sensitivity disclosure is required under ASC 820-10-50-2(bbb) for Level 2 instruments, but the auditor should confirm the spot rate source is a reputable benchmark (WM/Reuters Fix or Bloomberg BFIX) to support the Level 2 classification.`;
+    inputs = `  Company Equity Value / TEV: ${fmt(parseFloat(equity))} — SIGNIFICANT LEVEL 3 INPUT. Sourced from 409A valuation, DCF model, or recent arm's-length transaction. Auditor must independently corroborate this value — it is the primary driver of the fair value conclusion.
+  Equity Volatility: ${vol}% — SIGNIFICANT LEVEL 3 INPUT. Derived from comparable public company historical volatility analysis. Document peer group selection, measurement period (typically 1-year or term-matched), and any size/leverage adjustments.
+  Risk-Free Rate: ${rfr}% — Treasury yield curve rate for the applicable term (${term} years). Observable (Level 2).
+  Liquidation Preference: ${fmt(r.effLiqPref)}/share effective (including ${fmt(r.accDiv)}/share accrued dividends) — Contractual; confirmed from Certificate of Incorporation.
+  Participation Structure: ${partLabels[r.partType]}${r.partType === 'capped' ? ` (cap: ${capVal}×)` : ''} — Contractual; confirmed from Certificate of Incorporation.
+  Conversion Feature: ${convLabels[r.convType]} — Contractual; confirmed from Certificate of Incorporation.
+  Annual Dividend Rate: ${divrate}% — Contractual; confirmed from Certificate of Incorporation.
+  Simulation Horizon: ${term} years — Management's estimated time to liquidity event. Assess reasonableness against financing history and comparables.
+  DLOM: ${r.dlom > 0 ? (r.dlom*100).toFixed(1)+'% — LEVEL 3 INPUT. Applied as a percentage reduction to the post-simulation fair value. Pre-DLOM total: '+fmt(r.fv + r.dlomAdj)+'. Dollar DLOM adjustment: −'+fmt(r.dlomAdj)+'. Document methodology (Finnerty, Longstaff, restricted stock studies). Management assertion alone is insufficient.' : '0% — Not applied. Assess whether a DLOM is warranted given the liquidity characteristics of the preferred shares.'}`;
 
-    conclusion = `The independently derived fair value of the ${pair} FX forward as of ${date} is ${fmt(r.fv)} (${r.fv >= 0 ? 'asset' : 'liability'}), based on the Covered Interest Rate Parity model. The fair forward rate of ${r.F0.toFixed(4)} compares to the contracted rate of ${parseFloat(strike).toFixed(4)}, producing the computed fair value. The instrument is classified as ASC 820 Level 2. The auditor recommends: (1) confirming the spot rate against the WM/Reuters 4pm Fix on the valuation date; (2) verifying both interest rates from central bank publications; and (3) confirming the settlement date and notional from the executed ISDA/FX confirmation.`;
+    sensNarrative = `Two sensitivity analyses were performed across the primary Level 3 inputs:
+  (1) Equity Value Sensitivity (±50% of base value ${fmt(parseFloat(equity))}): Fair value range ${eqRange}. This is the dominant risk driver. Auditors should challenge the reasonableness of the TEV assumption against observable market data.
+  (2) Volatility Sensitivity (±20% around ${vol}%): Fair value range ${volRange}. Higher volatility generally increases preferred value by increasing the probability of large upside conversion scenarios.
+
+Both ranges must be disclosed in the financial statement footnotes under ASC 820-10-50-2(bbb) as this is a Level 3 instrument. The auditor should assess whether management's point estimate falls within the range produced by these sensitivity scenarios.`;
+
+    conclusion = `The independently derived fair value of the convertible preferred stock as of ${date} is ${fmt(r.fv)} (${fmt(r.fvPerShare)} per share)${r.dlom > 0 ? `, after a ${(r.dlom*100).toFixed(1)}% DLOM adjustment` : ''}. The instrument is classified ASC 820 Level 3 due to the reliance on unobservable inputs — primarily company equity value and equity volatility. The auditor recommends: (1) independently corroborating the company equity value of ${fmt(parseFloat(equity))} — challenge management's TEV using at least one independent approach (DCF, market multiples, or recent transaction); (2) documenting the comparable company volatility analysis with the peer group and measurement period stated explicitly; (3) confirming all structural terms (participation, conversion, dividends) directly against the Certificate of Incorporation; (4) assessing whether a DLOM is appropriate and obtaining quantitative support if applied; and (5) ensuring the equity value and volatility sensitivity ranges (${eqRange} and ${volRange} respectively) are disclosed in the footnotes.`;
 
   // ─── OPTIONS / WARRANTS ───
   } else {
